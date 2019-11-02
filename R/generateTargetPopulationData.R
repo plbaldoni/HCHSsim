@@ -11,10 +11,10 @@ expit = function(xb){return(exp(xb)/(1+exp(xb)))}
 set.seed(04142019)
 
 ### Loading data for Multivariate Gaussian ###
-load('./Confidential/multiNorm.RData')
+load('./data/multiNorm.RData')
 
 ### Loading parameter estimates to simulate binary variables
-load('./Confidential/logiReg.RData')
+load('./data/logiReg.RData')
 
 ### Loading Target Population Data ###
 load(paste0('./RData/TargetPopulation.RData'))
@@ -149,7 +149,7 @@ ls.pop$Data$bkg_o = 1*(ls.pop$Data$bkg=='O')
 dt.pop <- ls.pop$Data
 
 ### Now loading model coefficients and variance parameter for simulation of true and biomarker intake ###
-load('./Confidential/calibrCoeff.RData')
+load('./data/calibrCoeff.RData')
 
 dt.pop$ln_na_true = as.numeric(as.matrix(cbind('Int'=1,subset(dt.pop,select=c('c_ln_na_avg','c_age','c_bmi','female','usborn','high_chol','bkg_pr','bkg_o'))))%*%sodicoeff$Estimate+rnorm(nrow(dt.pop),0,sqrt(var.df$Var.True[1])))
 dt.pop$ln_k_true = as.numeric(as.matrix(cbind('Int'=1,subset(dt.pop,select=c('c_ln_k_avg','c_age','c_bmi','female','usborn','high_chol','bkg_pr','bkg_o'))))%*%potacoeff$Estimate+rnorm(nrow(dt.pop),0,sqrt(var.df$Var.True[2])))
@@ -207,10 +207,10 @@ with(dt.pop,cor(c_ln_kcal_bio1,c_ln_kcal_avg)) #0.26
 with(dt.pop,cor(c_ln_protein_bio1,c_ln_protein_avg)) #0.31
 
 ### Now, I will simulate two outcomes (continuous sbp and hypertension2_indicator)
-load('./Confidential/outPar.RData')
+load('./data/outPar.RData')
 
 ### Now, simulating hypertension outcome ###
-suboutcome.par = data.frame(Variable = c('Intercept',all.vars(formula(m1)[-2])), Estimate = m1$coefficients)
+suboutcome.par = data.frame(Variable = c('Intercept',all.vars(m1.formula[-2])), Estimate = m1.coefficients)
 # Changing the main effect size: 1.3 OR for a 20% increase (1.2) in Sodium. From Prentice (2017)
 suboutcome.par$Estimate[suboutcome.par$Variable=='C_LN_NA_CALIBR'] = log(1.3)/log(1.2)
 # Adjusting the intercept for an overall prevalence of 0.08 (from real data)
@@ -227,7 +227,7 @@ dt.pop$hypertension = as.numeric(1*(runif(nrow(p.par))<=p.par))
 # I will do: 
 # leads to an increment of 5 units in SBP. Large effect
 
-suboutcome.par = data.frame(Variable = c('Intercept',all.vars(formula(m2)[-2])), Estimate = m2$coefficients)
+suboutcome.par = data.frame(Variable = c('Intercept',all.vars(m2.formula[-2])), Estimate = m2.coefficients)
 # Increasing the main effect size: 0.182 unit increase in log_NA (or exp(0.182)~1.2 times increase in sodium)
 suboutcome.par$Estimate[suboutcome.par$Variable=='C_LN_NA_CALIBR'] = 5/0.182
 # Adjusting the intercept for an overall average of 120 SBP
@@ -235,7 +235,7 @@ suboutcome.par$Estimate[suboutcome.par$Variable=='Intercept'] = 120-sum(suboutco
 
 suboutcome.par = suboutcome.par[match(c("Intercept","C_AGE","C_BMI","C_LN_NA_CALIBR",'HIGH_TOTAL_CHOL','US_BORN','FEMALE','BKGRD_PR','BKGRD_OTHER'),suboutcome.par$Variable),]
 xb.par = as.matrix(cbind('Intercept'=1,dt.pop[,c('c_age','c_bmi','c_ln_na_true','high_chol','usborn','female','bkg_pr','bkg_o')]))%*%suboutcome.par$Estimate
-dt.pop$sbp = as.numeric((xb.par+rnorm(nrow(xb.par),0,sigma(m2))))
+dt.pop$sbp = as.numeric((xb.par+rnorm(nrow(xb.par),0,m2.sigma)))
 
 ### Organizing, Centering and Saving data
 dt.pop$bkg %<>% as.character()
