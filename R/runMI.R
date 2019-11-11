@@ -12,7 +12,7 @@ sampname = 'SampleData'
 S=1000 #Number of samples drawn
 B=500 #Number of bootstrap runs within each sample
 idx=1:1000
-seed = as.numeric(Sys.Date())+idx[1]+2
+seed = 20190414+idx[1]+2
 cat('The seed is: ',seed)
 set.seed(seed)
 
