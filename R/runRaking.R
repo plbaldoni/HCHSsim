@@ -27,6 +27,8 @@ m1.list.raking = list()
 m2.list.raking = list()
 
 calib = function(w1,w2,z){
+  # This function implements equation 1 from https://www.stata.com/merror/call.pdf (page 83) or https://www.stata.com/merror/rcal.pdf
+  # Best linear approximation = exact conditional expectation under joint normality
   N = nrow(z)
   
   wbar = rowMeans(cbind(w1,w2))
@@ -51,40 +53,30 @@ for(i in idx){
   m2.list.raking[[i]] = list()
   
   # Step 0: Adjusting biomarker nutrient using the attenuation factor (R.J. Carroll & D. Ruppert, 2002) 
+  # See https://www.stata.com/merror/call.pdf (beginning on page 82) and https://www.stata.com/merror/rcal.pdf
+  # Because Biomarker = True + error, we can regress Biomarker ~ Naive + Adjustments to estimate the parameters in the regression of True ~ Naive + Adjustments
+  
   samp.solnas <- samp[(solnas==T),]
   samp.solnas[,c_ln_na_bio_moments_adj := calib(w1 = samp.solnas$c_ln_na_bio1,w2 = samp.solnas$c_ln_na_bio2,z = as.matrix(samp.solnas[,c('c_age','c_bmi','high_chol','usborn','female','bkg_pr','bkg_o')]))]
   samp.solnas[,c_ln_na_bio_glm_adj := predict(glm(c_ln_na_bio2 ~ c_age + c_bmi + c_ln_na_bio1 + high_chol + usborn + female + bkg_pr + bkg_o,data = samp.solnas),newdata=samp.solnas,'response')]
   samp <- merge(samp,samp.solnas[,c('subid','c_ln_na_bio_moments_adj','c_ln_na_bio_glm_adj')],by = 'subid',all.x = T)
   
-  # Now, fitting calibration model
+  # Step 1: fitting calibration model
+  # The code below fits the calibration equation using one of the two available biomarker replicates
+  # I have tried fitting this model using both c_ln_na_bio_moments_adj  and c_ln_na_bio_glm_adj, but the results did not look good
   lm.lsodi = glm(c_ln_na_bio1 ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,data=samp.solnas)
   samp[,c_ln_na_calib := predict(lm.lsodi,newdata=samp,'response')]
   
-  # Fitting 'true' (unobserved) and 'naive' (2-day avg.) model
-  samp.design = svydesign(id=~BGid, strata=~strat, weights=~bghhsub_s2, data=samp)
-  
-  m1.true = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_true + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=quasibinomial())
-  m2.true = svyglm(sbp ~ c_age + c_bmi + c_ln_na_true + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=gaussian())
-  
-  m1.avg = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=quasibinomial())
-  m2.avg = svyglm(sbp ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=gaussian())
-  
   # Step 2: Fit DDM using calib, get influence functions, and add to data.
+  # In Lumley's book, the following models are fitted without sampling weights and design as a simple GLM
   ddm1 = glm(hypertension ~ c_age + c_bmi + c_ln_na_calib + high_chol + usborn + female + bkg_pr + bkg_o,data=samp,family=quasibinomial())
   ddm2 = glm(sbp ~ c_age + c_bmi + c_ln_na_calib + high_chol + usborn + female + bkg_pr + bkg_o,data=samp,family=gaussian())
   
   inf.ddm1 = dfbeta(ddm1);colnames(inf.ddm1)[1] = 'Int';colnames(inf.ddm1) = paste0('Inf.ddm1.',colnames(inf.ddm1));samp = cbind(samp,inf.ddm1)
   inf.ddm2 = dfbeta(ddm2);colnames(inf.ddm2)[1] = 'Int';colnames(inf.ddm2) = paste0('Inf.ddm2.',colnames(inf.ddm2));samp = cbind(samp,inf.ddm2)
   
-  # Step 3: Create twophase design, fit the 'naive' biomarker model and calibrate with influence functions
+  # Step 3: Create twophase design and calibrate with influence functions
   twophase.design = twophase(id=list(~BGid+hhid+subid,~1),subset=~solnas,strata=list(~strat,NULL),probs=list(~P.Bg+P.hh+P.sub,NULL),data=samp,method='full')
-  
-  m1.bio.moments = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
-  m2.bio.moments = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
-  
-  m1.bio.glm = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
-  m2.bio.glm = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
-  
   twophase.design.ddm1 = calibrate(twophase.design,phase=2,calfun='raking',as.formula(paste0('~',paste(colnames(inf.ddm1),collapse='+'))))
   twophase.design.ddm2 = calibrate(twophase.design,phase=2,calfun='raking',as.formula(paste0('~',paste(colnames(inf.ddm2),collapse='+'))))
   
@@ -95,7 +87,26 @@ for(i in idx){
   m1.raking.glm = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design.ddm1,family=quasibinomial())
   m2.raking.glm = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design.ddm2,family=gaussian())
   
-  # Bootstrap starts now
+  # Extra: fitting 'true' (unobserved), 'naive' (2-day avg.) model, and 'biomarker' models for comparison purposes.
+  # For the biomarker models, we fit the model with the two-phase design without raking.
+  # At some point, we wanted to see if the estimates are at least unbiased in the subset
+  
+  samp.design = svydesign(id=~BGid, strata=~strat, weights=~bghhsub_s2, data=samp)
+  
+  m1.true = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_true + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=quasibinomial())
+  m2.true = svyglm(sbp ~ c_age + c_bmi + c_ln_na_true + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=gaussian())
+  
+  m1.avg = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=quasibinomial())
+  m2.avg = svyglm(sbp ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,design=samp.design,family=gaussian())
+  
+  m1.bio.moments = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
+  m2.bio.moments = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
+  
+  m1.bio.glm = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
+  m2.bio.glm = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
+  
+  # Bootstrap Raking starts now
+  # Not sure if vairance estimates using the raking approach needs to be corrected by bootstrapping, in any case I am doing it below
   samp[,paste0(colnames(inf.ddm1))] = NULL
   samp[,paste0(colnames(inf.ddm2))] = NULL
   samp$c_ln_na_bio_moments_adj = NULL
@@ -126,15 +137,8 @@ for(i in idx){
     inf.ddm1 = dfbeta(ddm1);colnames(inf.ddm1)[1] = 'Int';colnames(inf.ddm1) = paste0('Inf.ddm1.',colnames(inf.ddm1));samp.boot = cbind(samp.boot,inf.ddm1)
     inf.ddm2 = dfbeta(ddm2);colnames(inf.ddm2)[1] = 'Int';colnames(inf.ddm2) = paste0('Inf.ddm2.',colnames(inf.ddm2));samp.boot = cbind(samp.boot,inf.ddm2)
     
-    # Step 3: Create twophase design, fit the 'naive' biomarker model and calibrate with influence functions
+    # Step 3: Create twophase design, alibrate with influence functions
     twophase.design = twophase(id=list(~BGid+hhid+subid,~1),subset=~solnas,strata=list(~strat,NULL),probs=list(~P.Bg+P.hh+P.sub,NULL),data=samp.boot,method='full')
-    
-    m1.bio.moments.boot = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
-    m2.bio.moments.boot = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
-    
-    m1.bio.glm.boot = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
-    m2.bio.glm.boot = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
-    
     twophase.design.ddm1 = calibrate(twophase.design,phase=2,calfun='raking',as.formula(paste0('~',paste(colnames(inf.ddm1),collapse='+'))))
     twophase.design.ddm2 = calibrate(twophase.design,phase=2,calfun='raking',as.formula(paste0('~',paste(colnames(inf.ddm2),collapse='+'))))
     
@@ -144,6 +148,13 @@ for(i in idx){
     
     m1.raking.glm.boot = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design.ddm1,family=quasibinomial())
     m2.raking.glm.boot = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design.ddm2,family=gaussian())
+    
+    # Extra: we wanted to see how the variance estimates from the usual model fitted with the biomarker in the subset improve with bootstrap
+    m1.bio.moments.boot = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
+    m2.bio.moments.boot = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_moments_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
+    
+    m1.bio.glm.boot = svyglm(hypertension ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=quasibinomial())
+    m2.bio.glm.boot = svyglm(sbp ~ c_age + c_bmi + c_ln_na_bio_glm_adj + high_chol + usborn + female + bkg_pr + bkg_o,design=twophase.design,family=gaussian())
     
     m1.list.raking[[i]][[j]] = data.frame(Sim=i,Boot=j,Coeff=names(m1.true$coefficients),
                                           Bio.Moments.Est.Boot=as.numeric(m1.bio.moments.boot$coefficients), Bio.Moments.SE.Boot=as.numeric(SE(m1.bio.moments.boot)),
