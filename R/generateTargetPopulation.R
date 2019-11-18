@@ -63,6 +63,7 @@ pop[,mean(hisp.strat),by='strat']
 pop[,unique(BGid),by='strat'][,.N,by='strat']
 
 # Saving output
+if(!dir.exists('./RData')){system('mkdir RData')}
 save(pop,file='./RData/TargetPopulation.RData',compress = 'xz')
 
 
