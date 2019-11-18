@@ -308,6 +308,7 @@ proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
     theme(legend.title=element_blank(),legend.position = c(0.25,0.7),legend.text = element_text(size=rel(0.5)),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
     guides(color = guide_legend(override.aes = list(size = rel(0.3))))
 
+if(!dir.exists('./Confidential')){system('mkdir Confidential')}
 pdf('./Confidential/Nutrients.pdf',width = 8.5*0.8,height = 11*0.35)
 ggarrange(naplot,kplot+theme(axis.title.y=element_blank()),
           kcalplot,proteinplot+theme(axis.title.y=element_blank()),
