@@ -82,7 +82,7 @@ for(i in idx){
 }
 cat('Done!',"\n")
 
-
+if(!dir.exists('./Output')){system('mkdir Output')}
 save(m1.list.boot,m2.list.boot,
      m1.list.cov.boot,m2.list.cov.boot,
      file=paste0('./Output/bootstrap.RData'))

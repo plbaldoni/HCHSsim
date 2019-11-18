@@ -86,7 +86,7 @@ for(i in idx){
 }
 cat('Done!',"\n")
 
-
+if(!dir.exists('./Output')){system('mkdir Output')}
 save(m1.list.mi,m2.list.mi,
      m1.list.cov.mi,m2.list.cov.mi,
      file=paste0('./Output/MI.RData'))

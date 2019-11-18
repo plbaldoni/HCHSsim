@@ -185,6 +185,6 @@ for(i in idx){
 }
 cat('Done!',"\n")
 
-
+if(!dir.exists('./Output')){system('mkdir Output')}
 save(m1.list.raking,m2.list.raking,
      file=paste0('./Output/raking.RData'))
