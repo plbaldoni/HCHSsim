@@ -238,23 +238,23 @@ summ = function(df,method,model,raking,nboot=500,
 # Tables - Average/SD
 m1.boot = summ(df=df.m1.boot,method='Bootstrap',model='Hypertension',raking=F,digits = 3,
                func.avg = 'mean',func.sd = 'sd',
-               func.var.avg = 'mean',func.var.sd = 'sd')
+               func.var.avg = 'median',func.var.sd = 'mad')
 m1.mi = summ(df=df.m1.mi,method='MI',model='Hypertension',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
-             func.var.avg = 'mean',func.var.sd = 'sd')
+             func.var.avg = 'median',func.var.sd = 'mad')
 # m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,nboot = 500,digits = 3,
 #                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'mean',func.var.sd = 'sd')
+#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
                func.avg = 'mean',func.sd = 'sd',
-               func.var.avg = 'mean',func.var.sd = 'sd')
+               func.var.avg = 'median',func.var.sd = 'mad')
 m2.mi = summ(df=df.m2.mi,method='MI',model='SBP',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
-             func.var.avg = 'mean',func.var.sd = 'sd')
+             func.var.avg = 'median',func.var.sd = 'mad')
 # m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,nboot = 500,digits = 3,
 #                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'mean',func.var.sd = 'sd')
+#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 ### Organizing the output
 key = Coeff
@@ -348,5 +348,5 @@ fig.m2
 dev.off()
 
 ### Saving the image
-save.image('./Output/summarize.RData',compress = 'xz')
+save.image('./Output/summarize.RData')
 
