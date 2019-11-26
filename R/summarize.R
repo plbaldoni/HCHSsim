@@ -347,6 +347,3 @@ pdf(file = './Output/summarize_linear.pdf',height = 8.5,width = 11)
 fig.m2
 dev.off()
 
-### Saving the image
-save.image('./Output/summarize.RData')
-
