@@ -15,11 +15,12 @@ load('./Output/MI.RData')
 df.m1.mi <- m1.list.mi %<>% rbindlist()
 df.m2.mi <- m2.list.mi %<>% rbindlist()
 
-# Color of peak calls
+# Color of plots
+Coeff = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Background: PR','Background: Other')
+coeffcol = c('#000000','#000000','#000000',"#E41A1C",'#000000','#000000','#000000','#000000','#000000')
+names(coeffcol) = Coeff
 # methcol = c('#000000',gray.colors(12)[c(1,2,4)])
 # names(methcol) <- c('True (Unobservable)','Naive 2-day Mean','Calibrated w/ Bootstrap','Calibrated w/ MI')
-
-Coeff = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Background: PR','Background: Other')
 
 ### Getting Population Coefficients
 load('./RData/TargetPopulationData.RData')
@@ -285,7 +286,7 @@ m1.plot <- rbindlist(list(m1.boot.out[,c('Coeff','Estimate','True.Est','True.ESE
                           m1.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ Bootstrap (Phase 1)'],
                           m1.mi.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ MI (Phase 1)']),use.names=FALSE)
 setnames(m1.plot,c('Coeff','True','Estimate','ESE','SE','Cov','Method'))
-m1.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
+# m1.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
 m1.plot$Coeff %<>% factor(levels = unique(.))
 m1.plot$Method %<>% as.factor() %<>% factor(levels = unique(.))
 m1.plot[,Lbl := min(Estimate-SE,Estimate-ESE)-max(SE,ESE),by='Coeff']
@@ -298,7 +299,7 @@ m2.plot <- rbindlist(list(m2.boot.out[,c('Coeff','Estimate','True.Est','True.ESE
                           m2.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ Bootstrap (Phase 1)'],
                           m2.mi.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ MI (Phase 1)']),use.names=FALSE)
 setnames(m2.plot,c('Coeff','True','Estimate','ESE','SE','Cov','Method'))
-m2.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
+# m2.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
 m2.plot$Coeff %<>% factor(levels = unique(.))
 m2.plot$Method %<>% as.factor() %<>% factor(levels = unique(.))
 m2.plot[,Lbl := min(Estimate-SE,Estimate-ESE)-max(SE,ESE),by='Coeff']
@@ -317,24 +318,26 @@ m2.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(u
 
 fig.m1 = ggplot(data = m1.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Method, y = Estimate,shape = Method)) +
     facet_wrap(~Coeff,scales = 'free_y') +
-    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE),size=0.5) +
     geom_hline(data = m1.plot.sub, aes(yintercept = True))+
-    geom_point(aes(y = Estimate+ESE),shape = 5)+
-    geom_point(aes(y = Estimate-ESE),shape = 5)+
+    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+    geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
+    geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
     geom_text(aes(label = paste0(formatC(round(100*Cov,1),format='f',digits=1),'%'),y = Lbl),size = 3.5,position = position_dodge(0.9),vjust = 0,fontface = "bold") +
     theme_bw()+
-    guides(shape = FALSE)+
+    scale_color_manual(values = coeffcol)+
+    guides(shape = FALSE, color = FALSE)+
     theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,axis.title.x = element_blank(),legend.title = element_blank())
 
 fig.m2 =  ggplot(data = m2.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Method, y = Estimate,shape = Method)) +
     facet_wrap(~Coeff,scales = 'free_y') +
-    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE),size=0.5) +
     geom_hline(data = m2.plot.sub, aes(yintercept = True))+
-    geom_point(aes(y = Estimate+ESE),shape = 5)+
-    geom_point(aes(y = Estimate-ESE),shape = 5)+
+    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+    geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
+    geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
     geom_text(aes(label = paste0(formatC(round(100*Cov,1),format='f',digits=1),'%'),y = Lbl),size = 3.5,position = position_dodge(0.9),vjust = 0,fontface = "bold") +
     theme_bw()+
-    guides(shape = FALSE)+
+    scale_color_manual(values = coeffcol)+
+    guides(shape = FALSE, color = FALSE)+
     theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,axis.title.x = element_blank(),legend.title = element_blank())
 
 ### Saving the plots
