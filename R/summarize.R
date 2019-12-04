@@ -350,97 +350,106 @@ pdf(file = './Output/summarize_linear.pdf',height = 8.5,width = 11)
 fig.m2
 dev.off()
 
-### Checking the appropriate number of MI/Bootstrap iterations
+pt.title = 10
+pt.text = 8
 
-traceplot <- function(df,method,x = c(2,3,4,5,seq(10,500,10)),
-                      func.avg = 'mean',func.sd='sd',
-                      func.var.avg = 'mean',func.var.sd = 'sd'){
-    
-    df$Coeff %<>% mapvalues(from=unique(df$Coeff),to=Coeff) %<>% as.character()
-    
-    funclist = list(func.avg,func.sd)
-    f.avg = match.fun(funclist[[1]]);f.sd = match.fun(funclist[[2]])
-    
-    funcvarlist = list(func.var.avg,func.var.sd)
-    f.var.avg = match.fun(funcvarlist[[1]]);f.var.sd = match.fun(funcvarlist[[2]])
-    
-    # Calculating the empirical SE
-    df.calib.est.ese <- df[,.(Calib.Est = unique(Calib.Est)),by=c('Coeff','Sim')][,.(Calib.Est = f.sd(Calib.Est)),by=c('Coeff')]
-    df.calib.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.est.ese$Coeff[!df.calib.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
-    
-    # Calculating the empirical ESE
-    df.avg.est.ese <- df[,.(Avg.Est = unique(Avg.Est)),by=c('Coeff','Sim')][,.(Avg.Est = f.sd(Avg.Est)),by=c('Coeff')]
-    df.avg.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.avg.est.ese$Coeff[!df.avg.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
-    
-    # Bootstrap/MI correction for SE
-    df.calib.se <- rbindlist(lapply(x,FUN = function(y){
-        if(method=='Bootstrap'){sub.df <- df[Boot<=y,]}
-        if(method=='MI'){sub.df <- df[MI<=y,]}
-        
-        df.var.within = sub.df[,.(withinVar = f.var.avg(SE^2)),by=c('Coeff','Sim')]
-        df.var.between = sub.df[,.(betweenSE = f.var.sd(Est)),by=c('Coeff','Sim')]
-        df.var = merge(x=df.var.within,y=df.var.between,by=c('Coeff','Sim'))
-        df.var[,Corrected.SE := sqrt(withinVar + betweenSE^2)]
-        df.out <- df.var[,.(Median = median(Corrected.SE),Pct_025 = quantile(Corrected.SE,0.025),Pct_975 = quantile(Corrected.SE,0.975)),by = 'Coeff']
-        df.out[,Cutoff := y]
-    }))
-    df.calib.se$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.se$Coeff[!df.calib.se$Coeff%in%c('Intercept','Log-Sodium')]))))
-    
-    df.ese <- merge(df.calib.est.ese,df.avg.est.ese,by = 'Coeff')
-    df.ese <- melt(df.ese,id.vars = 'Coeff',measure.vars = c('Calib.Est','Avg.Est'),variable.name = 'Empirical',value.name = 'SE')
-    df.ese$Empirical %<>% mapvalues(from = c('Calib.Est','Avg.Est'), to = c('Calibrated','Naive'))
-    
-    return(list('trace' = df.calib.se, 'ese' = df.ese))
-}
+fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
 
-trace.m1.boot <- traceplot(df = df.m1.boot,method = 'Bootstrap')
-trace.m2.boot <- traceplot(df = df.m2.boot,method = 'Bootstrap')
-trace.m1.mi <- traceplot(df = df.m1.mi,method = 'MI')
-trace.m2.mi <- traceplot(df = df.m2.mi,method = 'MI')
+ggsave(filename = './Output/Figure3.pdf',plot = fig,height = 11,width = 8.5)
 
-fig.trace.m1.boot <- ggplot(data = trace.m1.boot$trace,aes(x = Cutoff))+
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = trace.m1.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-    geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-    guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-    scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-    geom_line(aes(y = Median)) +
-    theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-    theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
-fig.trace.m2.boot <- ggplot(data = trace.m2.boot$trace,aes(x = Cutoff))+
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = trace.m2.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-    geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-    guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-    scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-    geom_line(aes(y = Median)) +
-    theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-    theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
-fig.trace.m1.mi <- ggplot(data = trace.m1.mi$trace,aes(x = Cutoff))+
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = trace.m1.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-    geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-    guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-    scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-    geom_line(aes(y = Median)) +
-    theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-    theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
-fig.trace.m2.mi <- ggplot(data = trace.m2.mi$trace,aes(x = Cutoff))+
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = trace.m2.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-    geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-    guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-    scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-    geom_line(aes(y = Median)) +
-    theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-    theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
-### Saving plots
-
-ggsave(filename = './Output/traceplot.logistic.bootstrap.pdf',plot = fig.trace.m1.boot,width = 6,height = 5)
-ggsave(filename = './Output/traceplot.linear.bootstrap.pdf',plot = fig.trace.m2.boot,width = 6,height = 5)
-ggsave(filename = './Output/traceplot.logistic.MI.pdf',plot = fig.trace.m1.mi,width = 6,height = 5)
-ggsave(filename = './Output/traceplot.linear.MI.pdf',plot = fig.trace.m2.mi,width = 6,height = 5)
+# ### Checking the appropriate number of MI/Bootstrap iterations
+# 
+# traceplot <- function(df,method,x = c(2,3,4,5,seq(10,500,10)),
+#                       func.avg = 'mean',func.sd='sd',
+#                       func.var.avg = 'mean',func.var.sd = 'sd'){
+#     
+#     df$Coeff %<>% mapvalues(from=unique(df$Coeff),to=Coeff) %<>% as.character()
+#     
+#     funclist = list(func.avg,func.sd)
+#     f.avg = match.fun(funclist[[1]]);f.sd = match.fun(funclist[[2]])
+#     
+#     funcvarlist = list(func.var.avg,func.var.sd)
+#     f.var.avg = match.fun(funcvarlist[[1]]);f.var.sd = match.fun(funcvarlist[[2]])
+#     
+#     # Calculating the empirical SE
+#     df.calib.est.ese <- df[,.(Calib.Est = unique(Calib.Est)),by=c('Coeff','Sim')][,.(Calib.Est = f.sd(Calib.Est)),by=c('Coeff')]
+#     df.calib.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.est.ese$Coeff[!df.calib.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
+#     
+#     # Calculating the empirical ESE
+#     df.avg.est.ese <- df[,.(Avg.Est = unique(Avg.Est)),by=c('Coeff','Sim')][,.(Avg.Est = f.sd(Avg.Est)),by=c('Coeff')]
+#     df.avg.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.avg.est.ese$Coeff[!df.avg.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
+#     
+#     # Bootstrap/MI correction for SE
+#     df.calib.se <- rbindlist(lapply(x,FUN = function(y){
+#         if(method=='Bootstrap'){sub.df <- df[Boot<=y,]}
+#         if(method=='MI'){sub.df <- df[MI<=y,]}
+#         
+#         df.var.within = sub.df[,.(withinVar = f.var.avg(SE^2)),by=c('Coeff','Sim')]
+#         df.var.between = sub.df[,.(betweenSE = f.var.sd(Est)),by=c('Coeff','Sim')]
+#         df.var = merge(x=df.var.within,y=df.var.between,by=c('Coeff','Sim'))
+#         df.var[,Corrected.SE := sqrt(withinVar + betweenSE^2)]
+#         df.out <- df.var[,.(Median = median(Corrected.SE),Pct_025 = quantile(Corrected.SE,0.025),Pct_975 = quantile(Corrected.SE,0.975)),by = 'Coeff']
+#         df.out[,Cutoff := y]
+#     }))
+#     df.calib.se$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.se$Coeff[!df.calib.se$Coeff%in%c('Intercept','Log-Sodium')]))))
+#     
+#     df.ese <- merge(df.calib.est.ese,df.avg.est.ese,by = 'Coeff')
+#     df.ese <- melt(df.ese,id.vars = 'Coeff',measure.vars = c('Calib.Est','Avg.Est'),variable.name = 'Empirical',value.name = 'SE')
+#     df.ese$Empirical %<>% mapvalues(from = c('Calib.Est','Avg.Est'), to = c('Calibrated','Naive'))
+#     
+#     return(list('trace' = df.calib.se, 'ese' = df.ese))
+# }
+# 
+# trace.m1.boot <- traceplot(df = df.m1.boot,method = 'Bootstrap')
+# trace.m2.boot <- traceplot(df = df.m2.boot,method = 'Bootstrap')
+# trace.m1.mi <- traceplot(df = df.m1.mi,method = 'MI')
+# trace.m2.mi <- traceplot(df = df.m2.mi,method = 'MI')
+# 
+# fig.trace.m1.boot <- ggplot(data = trace.m1.boot$trace,aes(x = Cutoff))+
+#     facet_wrap(~Coeff,scales = 'free_y') +
+#     geom_hline(data = trace.m1.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
+#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
+#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
+#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
+#     geom_line(aes(y = Median)) +
+#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
+#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+# 
+# fig.trace.m2.boot <- ggplot(data = trace.m2.boot$trace,aes(x = Cutoff))+
+#     facet_wrap(~Coeff,scales = 'free_y') +
+#     geom_hline(data = trace.m2.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
+#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
+#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
+#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
+#     geom_line(aes(y = Median)) +
+#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
+#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+# 
+# fig.trace.m1.mi <- ggplot(data = trace.m1.mi$trace,aes(x = Cutoff))+
+#     facet_wrap(~Coeff,scales = 'free_y') +
+#     geom_hline(data = trace.m1.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
+#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
+#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
+#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
+#     geom_line(aes(y = Median)) +
+#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
+#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+# 
+# fig.trace.m2.mi <- ggplot(data = trace.m2.mi$trace,aes(x = Cutoff))+
+#     facet_wrap(~Coeff,scales = 'free_y') +
+#     geom_hline(data = trace.m2.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
+#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
+#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
+#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
+#     geom_line(aes(y = Median)) +
+#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
+#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+# 
+# ### Saving plots
+# 
+# ggsave(filename = './Output/traceplot.logistic.bootstrap.pdf',plot = fig.trace.m1.boot,width = 6,height = 5)
+# ggsave(filename = './Output/traceplot.linear.bootstrap.pdf',plot = fig.trace.m2.boot,width = 6,height = 5)
+# ggsave(filename = './Output/traceplot.logistic.MI.pdf',plot = fig.trace.m1.mi,width = 6,height = 5)
+# ggsave(filename = './Output/traceplot.linear.MI.pdf',plot = fig.trace.m2.mi,width = 6,height = 5)

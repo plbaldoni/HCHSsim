@@ -1,7 +1,7 @@
 ### Generate data for TargetPopulation.RData ###
 
 ### Loading libraries
-lapply(c('data.table','mvtnorm','magrittr','survey','dplyr','tidyr','ggplot2','ggpubr'),library,character.only = T)
+lapply(c('data.table','mvtnorm','magrittr','survey','dplyr','tidyr','ggplot2','ggpubr','tidyverse','kableExtra'),library,character.only = T)
 # lapply(c('haven','mvtnorm','survey','magrittr',,,'ggpubr'), library, character.only = TRUE)
 
 ### Expit function
@@ -308,9 +308,41 @@ proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
     theme(legend.title=element_blank(),legend.position = c(0.25,0.7),legend.text = element_text(size=rel(0.5)),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
     guides(color = guide_legend(override.aes = list(size = rel(0.3))))
 
-if(!dir.exists('./Confidential')){system('mkdir Confidential')}
-pdf('./Confidential/Nutrients.pdf',width = 8.5*0.8,height = 11*0.35)
+if(!dir.exists('./Output')){system('mkdir Output')}
+pdf('./Output/Figure1.pdf',width = 8.5*0.8,height = 11*0.35)
 ggarrange(naplot,kplot+theme(axis.title.y=element_blank()),
           kcalplot,proteinplot+theme(axis.title.y=element_blank()),
           nrow = 2,ncol = 2)
 dev.off()
+
+###########################################
+############# Creating Table ##############
+###########################################
+
+pop.v1 <- pop[(v.num==1),]
+
+dt1 <- pop.v1[,.(N = .N,Age = round(100*mean(age.strat),2)),by=c('strat','hisp.strat','bkg','sex')]
+
+dt2 <- pop.v1[,.(NBG = length(unique(BGid)), NHH = length(unique(hhid))),by = c('strat')]
+
+dt3 <- pop.v1[,.(N = length(unique(hhid))),by=c('strat','hisp.strat')]
+dt3[,HispStrat := paste0(ifelse(hisp.strat,'Hisp.','Non-hisp.'),' (',N,')')][,N := NULL]
+
+dt <- merge(dt2,dt3,by='strat')
+dt <- merge(dt,dt1,by = c('strat','hisp.strat'))
+
+dt[,hisp.strat := NULL]
+dt$bkg %<>% plyr::mapvalues(from = c('PR','D','O'),to = c('Puerto Rican','Dominican','Other'))
+dt$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female'))
+setorder(dt,strat,HispStrat,bkg,sex)
+
+sink('./Output/Table1.tex')
+kable(dt,booktab = T,caption = '\\label{svysamp}Characteristics of the simulated target population',
+      col.names=c('','(N)','(N)','(N)','','','(N)','(\\%)'),escape=F,format = "latex",
+      align = c('c','c','c','c','l','l','r','r')) %>%
+    add_header_above(c('Stratum'=1,'Block Groups'=1,'Households'=1,'Household Type'=1,'Background'=1,'Sex'=1,'Participants'=1,'45+ years old'=1), line = F) %>%
+    collapse_rows(columns = 1:5,latex_hline = 'major',valign = 'top') %>%
+    row_spec(0,align = 'c') %>%
+    kable_styling(latex_options = "scale_down")
+sink()
+
