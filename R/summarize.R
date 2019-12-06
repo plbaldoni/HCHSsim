@@ -359,6 +359,10 @@ fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points")
 
 ggsave(filename = './Output/Figure3.pdf',plot = fig,height = 11,width = 8.5)
 
+### Saving the output
+
+save(m1.boot.out,m2.boot.out,m1.mi.out,m2.mi.out,file = './Output/summarize.R')
+
 # ### Checking the appropriate number of MI/Bootstrap iterations
 # 
 # traceplot <- function(df,method,x = c(2,3,4,5,seq(10,500,10)),
