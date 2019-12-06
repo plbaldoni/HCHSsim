@@ -361,7 +361,7 @@ ggsave(filename = './Output/Figure3.pdf',plot = fig,height = 11,width = 8.5)
 
 ### Saving the output
 
-save(m1.boot.out,m2.boot.out,m1.mi.out,m2.mi.out,file = './Output/summarize.R')
+save(m1.boot.out,m2.boot.out,m1.mi.out,m2.mi.out,file = './Output/summarize.RData')
 
 # ### Checking the appropriate number of MI/Bootstrap iterations
 # 
