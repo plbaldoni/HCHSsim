@@ -321,12 +321,12 @@ dev.off()
 
 pop.v1 <- pop[(v.num==1),]
 
-dt1 <- pop.v1[,.(N = .N,Age = round(100*mean(age.strat),2)),by=c('strat','hisp.strat','bkg','sex')]
+dt1 <- pop.v1[,.(N = format(.N,big.mark=',',trim=T),Age = round(100*mean(age.strat),2)),by=c('strat','hisp.strat','bkg','sex')]
 
-dt2 <- pop.v1[,.(NBG = length(unique(BGid)), NHH = length(unique(hhid))),by = c('strat')]
+dt2 <- pop.v1[,.(NBG = length(unique(BGid)), NHH = format(length(unique(hhid)),big.mark=',',trim=T)),by = c('strat')]
 
 dt3 <- pop.v1[,.(N = length(unique(hhid))),by=c('strat','hisp.strat')]
-dt3[,HispStrat := paste0(ifelse(hisp.strat,'Hisp.','Non-hisp.'),' (',N,')')][,N := NULL]
+dt3[,HispStrat := paste0(ifelse(hisp.strat,'Hisp.','Non-hisp.'),' (',format(N,big.mark = ',',trim = T),')')][,N := NULL]
 
 dt <- merge(dt2,dt3,by='strat')
 dt <- merge(dt,dt1,by = c('strat','hisp.strat'))
