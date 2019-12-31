@@ -340,7 +340,7 @@ sink('./Output/Table1.tex')
 kable(dt,booktab = T,caption = '\\label{svysamp}Characteristics of the simulated target population',
       col.names=c('','(N)','(N)','(N)','','','(N)','(\\%)'),escape=F,format = "latex",
       align = c('c','c','c','c','l','l','r','r')) %>%
-    add_header_above(c('Stratum'=1,'Block Groups'=1,'Households'=1,'Household Type'=1,'Background'=1,'Sex'=1,'Participants'=1,'45+ years old'=1), line = F) %>%
+    add_header_above(c('Stratum'=1,'Block Groups'=1,'Households'=1,'Household Type'=1,'Background'=1,'Sex'=1,'Individuals'=1,'45+ years old'=1), line = F) %>%
     collapse_rows(columns = 1:5,latex_hline = 'major',valign = 'top') %>%
     row_spec(0,align = 'c') %>%
     kable_styling(latex_options = "scale_down")
