@@ -15,6 +15,11 @@ load('./Output/MI.RData')
 df.m1.mi <- m1.list.mi %<>% rbindlist()
 df.m2.mi <- m2.list.mi %<>% rbindlist()
 
+load('./Output/raking_BetaVersion.RData')
+
+df.m1.raking <- m1.list.raking %<>% rbindlist()
+df.m2.raking <- m2.list.raking %<>% rbindlist()
+
 # Color of plots
 Coeff = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Background: PR','Background: Other')
 coeffcol = c('#000000','#000000','#000000',"#E41A1C",'#000000','#000000','#000000','#000000','#000000')
@@ -137,6 +142,21 @@ summ = function(df,method,model,raking,nboot=500,
         return(df.out)
     }
     if(raking==T){
+        # Raking models
+        df.raking.est = df[,.(Raking.Est = unique(Raking.Est)),by=c('Coeff','Sim')]
+        df.raking.se = df[,.(Raking.SE = unique(Raking.SE)),by=c('Coeff','Sim')]
+        df.raking.est.avg = df.raking.est[,.(Raking.Est = f.avg(Raking.Est)),by=c('Coeff')]
+        df.raking.est.ese = df.raking.est[,.(Raking.Est = f.sd(Raking.Est)),by=c('Coeff')]
+        df.raking.se.avg = df.raking.se[,.(Raking.SE = f.avg(na.omit(Raking.SE))),by=c('Coeff')]
+        df.raking.cov = merge(df.raking.est,df.raking.se,by=c('Coeff','Sim'),all.x=T)
+        df.raking.cov = merge(df.raking.cov,subset(pop.coeff,Model==model,select=c(Coeff,Estimate)),by='Coeff',all.x=T)
+        df.raking.cov[,Raking.Cov := 1*(Estimate>=(Raking.Est-qnorm(1-(1-ci/100)/2)*Raking.SE) & Estimate<=(Raking.Est+qnorm(1-(1-ci/100)/2)*Raking.SE))]
+        df.raking.cov = df.raking.cov[,.(Raking.Cov = mean(Raking.Cov,na.rm = T)),by=c('Coeff')] #Removing NaN from a single case 
+        df.raking.out = merge(df.raking.est.avg,df.raking.est.ese,by='Coeff',all.x=T)
+        df.raking.out = merge(df.raking.out,df.raking.se.avg,by='Coeff',all.x=T)
+        df.raking.out = merge(df.raking.out,df.raking.cov,by='Coeff',all.x=T);colnames(df.raking.out) = c('Coeff','Raking.Est','Raking.ESE','Raking.SE','Raking.Cov')
+        rm(df.raking.est,df.raking.se,df.raking.est.avg,df.raking.est.ese,df.raking.se.avg,df.raking.cov)
+        
         # This needs to be revised if we use raking estimators
         # # Biomarker Intake
         # df.bio.est = df[,.(Bio.Moments.Est = unique(Bio.Moments.Est)),by=c('Coeff','Sim')]
@@ -179,22 +199,18 @@ summ = function(df,method,model,raking,nboot=500,
         # df.raking.out = merge(df.raking.out,df.raking.se.avg,by='Coeff',all.x=T)
         # df.raking.out = merge(df.raking.out,df.raking.cov,by='Coeff',all.x=T);colnames(df.raking.out) = c('Coeff','Raking.Moments.Est','Raking.Moments.ESE','Raking.Moments.SE','Raking.Moments.Cov')
         # rm(df.raking.est,df.raking.se,df.raking.est.avg,df.raking.est.ese,df.raking.se.avg,df.raking.cov)
-        # 
-        # # Output table
-        # df.out = merge(df.true.out,df.avg.out,by='Coeff',all.x=T)
-        # df.out = merge(df.out,df.raking.out,by='Coeff',all.x=T)
-        # df.out = merge(df.out,df.bio.out,by='Coeff',all.x=T)
-        # df.out = merge(df.out,df.var.mean,by='Coeff',all.x=T)
-        # df.out = merge(df.out,df.var.cov,by='Coeff',all.x=T)
-        # 
-        # df.out = df.out[match(df[1:nrow(df.out),]$Coeff,df.out$Coeff),
-        #                 c('Coeff','True.Est','True.ESE','True.SE','True.Cov', 
-        #                   'Naive.Est','Naive.ESE','Naive.SE','Naive.Cov',
-        #                   'Raking.Moments.Est','Raking.Moments.ESE','Raking.Moments.SE','Raking.Moments.Cov',
-        #                   'Bio.Moments.Est','Bio.Moments.ESE','Bio.Moments.SE','Bio.Moments.Cov',
-        #                   'Bio.Moments.Corrected.SE','Bio.Moments.Corrected.Cov')]
-        # df.out[,2:ncol(df.out)] %<>% round(digits)
-        # return(df.out)
+    
+        #Output table
+        df.out = merge(df.true.out,df.avg.out,by='Coeff',all.x=T)
+        df.out = merge(df.out,df.raking.out,by='Coeff',all.x=T)
+
+        
+        df.out = df.out[match(df[1:nrow(df.out),]$Coeff,df.out$Coeff),
+                        c('Coeff','True.Est','True.ESE','True.SE','True.Cov', 
+                          'Naive.Est','Naive.ESE','Naive.SE','Naive.Cov',
+                          'Raking.Est','Raking.ESE','Raking.SE','Raking.Cov')]
+        df.out[,2:ncol(df.out)] %<>% round(digits)
+        return(df.out)
     }
     
     if(plots){
@@ -243,9 +259,9 @@ m1.boot = summ(df=df.m1.boot,method='Bootstrap',model='Hypertension',raking=F,di
 m1.mi = summ(df=df.m1.mi,method='MI',model='Hypertension',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-# m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,nboot = 500,digits = 3,
-#                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'median',func.var.sd = 'mad')
+m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,digits = 3,
+                 func.avg = 'mean',func.sd = 'sd',
+                 func.var.avg = 'median',func.var.sd = 'mad')
 
 m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
                func.avg = 'mean',func.sd = 'sd',
@@ -253,9 +269,9 @@ m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
 m2.mi = summ(df=df.m2.mi,method='MI',model='SBP',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-# m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,nboot = 500,digits = 3,
-#                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'median',func.var.sd = 'mad')
+m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,digits = 3,
+                 func.avg = 'mean',func.sd = 'sd',
+                 func.var.avg = 'median',func.var.sd = 'mad')
 
 ### Organizing the output
 key = Coeff
