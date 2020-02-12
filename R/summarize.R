@@ -4,28 +4,35 @@ library(ggplot2)
 library(haven)
 library(data.table)
 library(readr)
+library(ggpubr)
+library(kableExtra)
 
 load('./Output/bootstrap.RData')
 
 df.m1.boot <- m1.list.boot %<>% rbindlist()
 df.m2.boot <- m2.list.boot %<>% rbindlist()
+df.m1.boot.time <- m1.list.mitime %<>% rbindlist()
+df.m2.boot.time <- m2.list.mitime %<>% rbindlist()
 
 load('./Output/MI.RData')
 
 df.m1.mi <- m1.list.mi %<>% rbindlist()
 df.m2.mi <- m2.list.mi %<>% rbindlist()
+df.m1.mi.time <- m1.list.mitime %<>% rbindlist()
+df.m2.mi.time <- m2.list.mitime %<>% rbindlist()
 
-load('./Output/raking_BetaVersion.RData')
+# load('./Output/raking_BetaVersion.RData')
+# 
+# df.m1.raking <- m1.list.raking %<>% rbindlist()
+# df.m2.raking <- m2.list.raking %<>% rbindlist()
 
-df.m1.raking <- m1.list.raking %<>% rbindlist()
-df.m2.raking <- m2.list.raking %<>% rbindlist()
+# Removing unecessary data
+rm(m1.list.boot,m2.list.boot,m1.list.mitime,m2.list.mitime,m1.list.mi,m2.list.mi)
 
 # Color of plots
-Coeff = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Background: PR','Background: Other')
+Coeff = c('Intercept','Age','BMI','Log-Sodium','High Cholesterol','US Born','Sex: Female','Background: Puerto Rico','Background: Other')
 coeffcol = c('#000000','#000000','#000000',"#E41A1C",'#000000','#000000','#000000','#000000','#000000')
 names(coeffcol) = Coeff
-# methcol = c('#000000',gray.colors(12)[c(1,2,4)])
-# names(methcol) <- c('True (Unobservable)','Naive 2-day Mean','Calibrated w/ Bootstrap','Calibrated w/ MI')
 
 ### Getting Population Coefficients
 load('./RData/TargetPopulationData.RData')
@@ -199,11 +206,11 @@ summ = function(df,method,model,raking,nboot=500,
         # df.raking.out = merge(df.raking.out,df.raking.se.avg,by='Coeff',all.x=T)
         # df.raking.out = merge(df.raking.out,df.raking.cov,by='Coeff',all.x=T);colnames(df.raking.out) = c('Coeff','Raking.Moments.Est','Raking.Moments.ESE','Raking.Moments.SE','Raking.Moments.Cov')
         # rm(df.raking.est,df.raking.se,df.raking.est.avg,df.raking.est.ese,df.raking.se.avg,df.raking.cov)
-    
+        
         #Output table
         df.out = merge(df.true.out,df.avg.out,by='Coeff',all.x=T)
         df.out = merge(df.out,df.raking.out,by='Coeff',all.x=T)
-
+        
         
         df.out = df.out[match(df[1:nrow(df.out),]$Coeff,df.out$Coeff),
                         c('Coeff','True.Est','True.ESE','True.SE','True.Cov', 
@@ -259,9 +266,9 @@ m1.boot = summ(df=df.m1.boot,method='Bootstrap',model='Hypertension',raking=F,di
 m1.mi = summ(df=df.m1.mi,method='MI',model='Hypertension',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,digits = 3,
-                 func.avg = 'mean',func.sd = 'sd',
-                 func.var.avg = 'median',func.var.sd = 'mad')
+# m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,digits = 3,
+#                  func.avg = 'mean',func.sd = 'sd',
+#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
                func.avg = 'mean',func.sd = 'sd',
@@ -269,9 +276,9 @@ m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
 m2.mi = summ(df=df.m2.mi,method='MI',model='SBP',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,digits = 3,
-                 func.avg = 'mean',func.sd = 'sd',
-                 func.var.avg = 'median',func.var.sd = 'mad')
+# m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,digits = 3,
+#                  func.avg = 'mean',func.sd = 'sd',
+#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 ### Organizing the output
 key = Coeff
@@ -358,11 +365,11 @@ fig.m2 =  ggplot(data = m2.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Me
 
 ### Saving the plots
 
-pdf(file = './Output/summarize_logistic.pdf',height = 8.5,width = 11)
+pdf(file = './Output/Figure3A.pdf',height = 8.5,width = 11)
 fig.m1
 dev.off()
 
-pdf(file = './Output/summarize_linear.pdf',height = 8.5,width = 11)
+pdf(file = './Output/Figure3B.pdf',height = 8.5,width = 11)
 fig.m2
 dev.off()
 
@@ -375,101 +382,123 @@ fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points")
 
 ggsave(filename = './Output/Figure3.pdf',plot = fig,height = 11,width = 8.5)
 
+# Computing time
+
+df.time <- rbindlist(list(df.m1.boot.time[,Method := 'Resampling-based MI'][,Model := 'Logistic'],
+                          df.m2.boot.time[,Method := 'Resampling-based MI'][,Model := 'Linear'],
+                          df.m1.mi.time[,Method := 'Parametric MI'][,Model := 'Logistic'],
+                          df.m2.mi.time[,Method := 'Parametric MI'][,Model := 'Linear']))
+df.time[,Total.Time := Time.Calibration+Time.Model+Time.Resampling]
+
+fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
+    geom_boxplot(aes(fill = Method))+
+    theme_bw()+
+    ylab('Log-10 Total Computing Time Per Sample')+
+    geom_hline(yintercept = c(log10(10),log10(15)),linetype = 'dashed',color = 'grey',alpha = 0.75)+
+    scale_fill_brewer(palette = "Set1")+
+    annotate('text',x = c(2.5,2.5), y = 0.95*c(log10(10),log10(15)),label = c('10 sec.','15 sec.'))+
+    theme(legend.position = c(0.75,0.75),axis.title = element_text(size = 12),
+          axis.text = element_text(size = 12),legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12))
+
+ggplot2::ggsave(plot = fig.time,filename = './Output/SuppFigure1.pdf',height = 11/2,width = 8.5/1.25)
+
 ### Saving the output
 
 save(m1.boot.out,m2.boot.out,m1.mi.out,m2.mi.out,file = './Output/summarize.RData')
 
-# ### Checking the appropriate number of MI/Bootstrap iterations
-# 
-# traceplot <- function(df,method,x = c(2,3,4,5,seq(10,500,10)),
-#                       func.avg = 'mean',func.sd='sd',
-#                       func.var.avg = 'mean',func.var.sd = 'sd'){
-#     
-#     df$Coeff %<>% mapvalues(from=unique(df$Coeff),to=Coeff) %<>% as.character()
-#     
-#     funclist = list(func.avg,func.sd)
-#     f.avg = match.fun(funclist[[1]]);f.sd = match.fun(funclist[[2]])
-#     
-#     funcvarlist = list(func.var.avg,func.var.sd)
-#     f.var.avg = match.fun(funcvarlist[[1]]);f.var.sd = match.fun(funcvarlist[[2]])
-#     
-#     # Calculating the empirical SE
-#     df.calib.est.ese <- df[,.(Calib.Est = unique(Calib.Est)),by=c('Coeff','Sim')][,.(Calib.Est = f.sd(Calib.Est)),by=c('Coeff')]
-#     df.calib.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.est.ese$Coeff[!df.calib.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
-#     
-#     # Calculating the empirical ESE
-#     df.avg.est.ese <- df[,.(Avg.Est = unique(Avg.Est)),by=c('Coeff','Sim')][,.(Avg.Est = f.sd(Avg.Est)),by=c('Coeff')]
-#     df.avg.est.ese$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.avg.est.ese$Coeff[!df.avg.est.ese$Coeff%in%c('Intercept','Log-Sodium')]))))
-#     
-#     # Bootstrap/MI correction for SE
-#     df.calib.se <- rbindlist(lapply(x,FUN = function(y){
-#         if(method=='Bootstrap'){sub.df <- df[Boot<=y,]}
-#         if(method=='MI'){sub.df <- df[MI<=y,]}
-#         
-#         df.var.within = sub.df[,.(withinVar = f.var.avg(SE^2)),by=c('Coeff','Sim')]
-#         df.var.between = sub.df[,.(betweenSE = f.var.sd(Est)),by=c('Coeff','Sim')]
-#         df.var = merge(x=df.var.within,y=df.var.between,by=c('Coeff','Sim'))
-#         df.var[,Corrected.SE := sqrt(withinVar + betweenSE^2)]
-#         df.out <- df.var[,.(Median = median(Corrected.SE),Pct_025 = quantile(Corrected.SE,0.025),Pct_975 = quantile(Corrected.SE,0.975)),by = 'Coeff']
-#         df.out[,Cutoff := y]
-#     }))
-#     df.calib.se$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(df.calib.se$Coeff[!df.calib.se$Coeff%in%c('Intercept','Log-Sodium')]))))
-#     
-#     df.ese <- merge(df.calib.est.ese,df.avg.est.ese,by = 'Coeff')
-#     df.ese <- melt(df.ese,id.vars = 'Coeff',measure.vars = c('Calib.Est','Avg.Est'),variable.name = 'Empirical',value.name = 'SE')
-#     df.ese$Empirical %<>% mapvalues(from = c('Calib.Est','Avg.Est'), to = c('Calibrated','Naive'))
-#     
-#     return(list('trace' = df.calib.se, 'ese' = df.ese))
-# }
-# 
-# trace.m1.boot <- traceplot(df = df.m1.boot,method = 'Bootstrap')
-# trace.m2.boot <- traceplot(df = df.m2.boot,method = 'Bootstrap')
-# trace.m1.mi <- traceplot(df = df.m1.mi,method = 'MI')
-# trace.m2.mi <- traceplot(df = df.m2.mi,method = 'MI')
-# 
-# fig.trace.m1.boot <- ggplot(data = trace.m1.boot$trace,aes(x = Cutoff))+
-#     facet_wrap(~Coeff,scales = 'free_y') +
-#     geom_hline(data = trace.m1.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-#     geom_line(aes(y = Median)) +
-#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-# 
-# fig.trace.m2.boot <- ggplot(data = trace.m2.boot$trace,aes(x = Cutoff))+
-#     facet_wrap(~Coeff,scales = 'free_y') +
-#     geom_hline(data = trace.m2.boot$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-#     geom_line(aes(y = Median)) +
-#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-# 
-# fig.trace.m1.mi <- ggplot(data = trace.m1.mi$trace,aes(x = Cutoff))+
-#     facet_wrap(~Coeff,scales = 'free_y') +
-#     geom_hline(data = trace.m1.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-#     geom_line(aes(y = Median)) +
-#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-# 
-# fig.trace.m2.mi <- ggplot(data = trace.m2.mi$trace,aes(x = Cutoff))+
-#     facet_wrap(~Coeff,scales = 'free_y') +
-#     geom_hline(data = trace.m2.mi$ese, aes(yintercept = SE,linetype = Empirical,color = Empirical))+
-#     geom_ribbon(aes(ymin = Pct_025, ymax = Pct_975, fill = "2.5 and 97.5 percentiles"),alpha = 0.5) +
-#     guides(fill=guide_legend(title=element_blank(),order = 2),color = guide_legend(order = 1),linetype = guide_legend(order = 1))+
-#     scale_fill_manual(values = c("2.5 and 97.5 percentiles" = 'grey'))+
-#     geom_line(aes(y = Median)) +
-#     theme_bw() + labs(x = 'Number of Imputations',y = 'Corrected SE (median estimate across 1000 simulations)', color = 'Empirical SE',linetype = 'Empirical SE')+
-#     theme(legend.position = 'top',legend.direction = 'horizontal',panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-# 
-# ### Saving plots
-# 
-# ggsave(filename = './Output/traceplot.logistic.bootstrap.pdf',plot = fig.trace.m1.boot,width = 6,height = 5)
-# ggsave(filename = './Output/traceplot.linear.bootstrap.pdf',plot = fig.trace.m2.boot,width = 6,height = 5)
-# ggsave(filename = './Output/traceplot.logistic.MI.pdf',plot = fig.trace.m1.mi,width = 6,height = 5)
-# ggsave(filename = './Output/traceplot.linear.MI.pdf',plot = fig.trace.m2.mi,width = 6,height = 5)
+### Now, computing tables
+
+t.m1.boot.out <- data.table(Parameter = names(m1.boot.out),data.table::transpose(m1.boot.out))
+setnames(t.m1.boot.out,as.character(t.m1.boot.out[1,]))
+t.m1.boot.out <- t.m1.boot.out[-1,]
+t.m1.boot.out <- t.m1.boot.out[match(c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                       'True.ESE','Naive.ESE','Calib.ESE',
+                                       'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                       'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),Coeff),]
+
+t.m2.boot.out <- data.table(Parameter = names(m2.boot.out),data.table::transpose(m2.boot.out))
+setnames(t.m2.boot.out,as.character(t.m2.boot.out[1,]))
+t.m2.boot.out <- t.m2.boot.out[-1,]
+t.m2.boot.out <- t.m2.boot.out[match(c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                       'True.ESE','Naive.ESE','Calib.ESE',
+                                       'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                       'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),Coeff),]
+
+t.m1.mi.out <- data.table(Parameter = names(m1.mi.out),data.table::transpose(m1.mi.out))
+setnames(t.m1.mi.out,as.character(t.m1.mi.out[1,]))
+t.m1.mi.out <- t.m1.mi.out[-1,]
+t.m1.mi.out <- t.m1.mi.out[match(c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                   'True.ESE','Naive.ESE','Calib.ESE',
+                                   'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                   'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),Coeff),]
+
+t.m2.mi.out <- data.table(Parameter = names(m2.mi.out),data.table::transpose(m2.mi.out))
+setnames(t.m2.mi.out,as.character(t.m2.mi.out[1,]))
+t.m2.mi.out <- t.m2.mi.out[-1,]
+t.m2.mi.out <- t.m2.mi.out[match(c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                   'True.ESE','Naive.ESE','Calib.ESE',
+                                   'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                   'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),Coeff),]
+
+t.m1.boot.out$Coeff %<>% mapvalues(from = c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                            'True.ESE','Naive.ESE','Calib.ESE',
+                                            'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                            'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),
+                                   to = c('','True','Naive','Calibrated',
+                                          'True','Naive','Calibrated',
+                                          'True','Naive','Calibrated','Corrected',
+                                          'True','Naive','Calibrated','Corrected'))
+t.m2.boot.out$Coeff %<>% mapvalues(from = c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                            'True.ESE','Naive.ESE','Calib.ESE',
+                                            'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                            'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),
+                                   to = c('','True','Naive','Calibrated',
+                                          'True','Naive','Calibrated',
+                                          'True','Naive','Calibrated','Corrected',
+                                          'True','Naive','Calibrated','Corrected'))
+t.m1.mi.out$Coeff %<>% mapvalues(from = c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                          'True.ESE','Naive.ESE','Calib.ESE',
+                                          'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                          'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),
+                                 to = c('','True','Naive','Calibrated',
+                                        'True','Naive','Calibrated',
+                                        'True','Naive','Calibrated','Corrected',
+                                        'True','Naive','Calibrated','Corrected'))
+t.m2.mi.out$Coeff %<>% mapvalues(from = c('Estimate','True.Est','Naive.Est','Calib.Est',
+                                          'True.ESE','Naive.ESE','Calib.ESE',
+                                          'True.SE','Naive.SE','Calib.SE','Corrected.SE',
+                                          'True.Cov','Naive.Cov','Calib.Cov','Corrected.Cov.Normal'),
+                                 to = c('','True','Naive','Calibrated',
+                                        'True','Naive','Calibrated',
+                                        'True','Naive','Calibrated','Corrected',
+                                        'True','Naive','Calibrated','Corrected'))
+t.m1.boot.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
+t.m2.boot.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
+t.m1.mi.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
+t.m2.mi.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
+
+t.m1.boot.out<-t.m1.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m2.boot.out<-t.m2.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m1.mi.out<-t.m1.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m2.mi.out<-t.m2.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+
+sink('./Output/SuppTable1.tex')
+kable(t.m1.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with bootstrap correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+    footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+sink()
+
+sink('./Output/SuppTable2.tex')
+kable(t.m2.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with bootstrap correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+    footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+sink()
+
+sink('./Output/SuppTable3.tex')
+kable(t.m1.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+    footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+sink()
+
+sink('./Output/SuppTable4.tex')
+kable(t.m2.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+    footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+sink()
