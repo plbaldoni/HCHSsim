@@ -478,10 +478,10 @@ t.m2.boot.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Cover
 t.m1.mi.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
 t.m2.mi.out$Type <- c('',rep('Estimate',3),rep('ESE',3),rep('SE',4),rep('Coverage',4))
 
-t.m1.boot.out<-t.m1.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
-t.m2.boot.out<-t.m2.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
-t.m1.mi.out<-t.m1.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
-t.m2.mi.out<-t.m2.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Chol.","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m1.boot.out<-t.m1.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m2.boot.out<-t.m2.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m1.mi.out<-t.m1.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
+t.m2.mi.out<-t.m2.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
 
 sink('./Output/SuppTable1.tex')
 kable(t.m1.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with bootstrap correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
