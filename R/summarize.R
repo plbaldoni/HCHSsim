@@ -393,7 +393,7 @@ df.time[,Total.Time := Time.Calibration+Time.Model+Time.Resampling]
 fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
     geom_boxplot(aes(fill = Method))+
     theme_bw()+
-    ylab('Log-10 Total Computing Time Per Sample')+
+    ylab('Log-10 computing time (in seconds) across 1000 simulations')+
     geom_hline(yintercept = c(log10(10),log10(15)),linetype = 'dashed',color = 'grey',alpha = 0.75)+
     scale_fill_brewer(palette = "Set1")+
     annotate('text',x = c(2.5,2.5), y = 0.95*c(log10(10),log10(15)),label = c('10 sec.','15 sec.'))+
