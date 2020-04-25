@@ -261,26 +261,26 @@ pt.text = 12
 sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_bio1','ln_na_avg','ln_na_true')],2,sd),2)
 pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
   gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
-  mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self'))
+  mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
 
 naplot = ggplot(pop.na,aes(Sodium,color=Type,fill=Type))+
   geom_density(alpha=0.15)+
   theme_bw()+ylab('Density')+xlab('Log-Sodium')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
   theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
   guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
 
 sdnutr = round(apply(pop[pop$v.num==1,c('ln_k_bio1','ln_k_avg','ln_k_true')],2,sd),2)
 pop.k <- as_tibble(pop[pop$v.num==1,c('ln_k_true','ln_k_bio1','ln_k_avg')]) %>%
   gather(Type,Potassium,ln_k_true:ln_k_avg) %>%
-  mutate(Type = recode(Type,ln_k_true = 'True', ln_k_bio1 = 'Biomarker', ln_k_avg='Self'))
+  mutate(Type = recode(Type,ln_k_true = 'True', ln_k_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
 
 kplot = ggplot(pop.k,aes(Potassium,color=Type,fill=Type))+
   geom_density(alpha=0.15)+
   theme_bw()+ylab('Density')+xlab('Log-Potassium')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
   theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
   guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
 
@@ -288,26 +288,26 @@ kplot = ggplot(pop.k,aes(Potassium,color=Type,fill=Type))+
 sdnutr = round(apply(pop[pop$v.num==1,c('ln_kcal_bio1','ln_kcal_avg','ln_kcal_true')],2,sd),2)
 pop.kcal <- as_tibble(pop[pop$v.num==1,c('ln_kcal_true','ln_kcal_bio1','ln_kcal_avg')]) %>%
   gather(Type,Kcal,ln_kcal_true:ln_kcal_avg) %>%
-  mutate(Type = recode(Type,ln_kcal_true = 'True', ln_kcal_bio1 = 'Biomarker', ln_k_avg='Self'))
+  mutate(Type = recode(Type,ln_kcal_true = 'True', ln_kcal_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
 
 kcalplot = ggplot(pop.kcal,aes(Kcal,color=Type,fill=Type))+
   geom_density(alpha=0.15)+
   theme_bw()+ylab('Density')+xlab('Log-Energy')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
   theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
   guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
 
 sdnutr = round(apply(pop[pop$v.num==1,c('ln_protein_bio1','ln_protein_avg','ln_protein_true')],2,sd),2)
 pop.protein <- as_tibble(pop[pop$v.num==1,c('ln_protein_true','ln_protein_bio1','ln_protein_avg')]) %>%
   gather(Type,Protein,ln_protein_true:ln_protein_avg) %>%
-  mutate(Type = recode(Type,ln_protein_true = 'True', ln_protein_bio1 = 'Biomarker', ln_k_avg='Self'))
+  mutate(Type = recode(Type,ln_protein_true = 'True', ln_protein_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
 
 proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
   geom_density(alpha=0.15)+
   theme_bw()+ylab('Density')+xlab('Log-Protein')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
   theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
   guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
 
@@ -320,6 +320,45 @@ ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = ele
           proteinplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
           nrow = 2,ncol = 2,labels = list('A','B','C','D'))
 dev.off()
+
+## Sodium-only figure
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')],2,sd),2)
+pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
+  gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
+  mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
+pop.na$Type %<>% factor(levels = c('True','Biomarker','Self-reported'))
+
+naplot = ggplot(pop.na,aes(Sodium,color=Type,fill=Type))+
+  geom_density(alpha=0.15)+
+  theme_bw()+ylab('Density')+xlab('Log-Sodium')+
+  scale_fill_brewer(palette = 'Set1',labels=as.character(apply(cbind(c('True','Biomarker','Self-reported'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})))+
+  scale_color_brewer(palette = 'Set1',labels=as.character(apply(cbind(c('True','Biomarker','Self-reported'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})))+
+  theme(legend.title=element_blank(),legend.position = c(0.2,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
+  guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1)
+
+dt1 <- melt(pop[pop$v.num==1,c('subid','sex','bkg','age','bmi','ln_na_true','ln_na_bio1','ln_na_avg')],
+            id.vars = c('subid','sex','bkg'),measure.vars = c('ln_na_true','ln_na_bio1','ln_na_avg'),variable.name = 'Nutrient',value.name = 'Value')
+dt1$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female')) %<>% factor(levels = c('Female','Male'))
+dt1$bkg %<>% plyr::mapvalues(from = c('D','PR','O'),to = c('Dominican','Puerto Rican','Other')) %<>% factor(levels = c('Dominican','Puerto Rican','Other'))
+dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-reported')) %<>% factor(levels = c('True','Biomarker','Self-reported'))
+
+fig1 <- ggplot(data = dt1,aes(x = sex,y = Value))+
+  facet_grid(cols = vars(bkg))+
+  geom_boxplot(aes(fill = Nutrient)) +
+  theme_bw()+
+  scale_fill_brewer(palette = 'Set1') +
+  ylab('Log-Sodium') + xlab('Sex')+
+  theme(legend.position = 'none')
+
+# Organizing plot
+if(!dir.exists('./Output')){system('mkdir Output')}
+pdf('./Output/Figure1_SodiumOnly.pdf',width = 7,height = 7)
+ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+          fig1,
+          nrow = 2,ncol = 1,labels = list('A','B'))
+dev.off()
+
 
 ###########################################
 ############# Creating Table ##############
