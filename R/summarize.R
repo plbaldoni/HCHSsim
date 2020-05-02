@@ -31,7 +31,7 @@ rm(m1.list.boot,m2.list.boot,m1.list.mitime,m2.list.mitime,m1.list.mi,m2.list.mi
 
 # Color of plots
 Coeff = c('Intercept','Age','BMI','Log-Sodium','High Cholesterol','US Born','Sex: Female','Background: Puerto Rico','Background: Other')
-coeffcol = c('#000000','#000000','#000000',"#E41A1C",'#000000','#000000','#000000','#000000','#000000')
+coeffcol = c('#000000','#000000','#000000',"#000000",'#000000','#000000','#000000','#000000','#000000')
 names(coeffcol) = Coeff
 
 ### Getting Population Coefficients
