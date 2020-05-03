@@ -371,6 +371,9 @@ ggsave(fig.m1,filename = './Output/Figure3A.eps',
 ggsave(fig.m2,filename = './Output/Figure3B.pdf',
        dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
+pt.text <- 8
+pt.title <- 10
+
 fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
