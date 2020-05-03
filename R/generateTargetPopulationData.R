@@ -2,7 +2,6 @@
 
 ### Loading libraries
 lapply(c('data.table','mvtnorm','magrittr','survey','dplyr','tidyr','ggplot2','ggpubr','tidyverse','kableExtra','ggjoy'),library,character.only = T)
-# lapply(c('haven','mvtnorm','survey','magrittr',,,'ggpubr'), library, character.only = TRUE)
 
 ### Expit function
 expit = function(xb){return(exp(xb)/(1+exp(xb)))}
@@ -311,15 +310,16 @@ proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
   theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
   guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
 
+figure1 <- ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     kplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     kcalplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     proteinplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     nrow = 2,ncol = 2,labels = list('A','B','C','D'))
+
 # Organizing plot
 if(!dir.exists('./Output')){system('mkdir Output')}
-pdf('./Output/Figure1.pdf',width = 8.5,height = 7)
-ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-          kplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-          kcalplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-          proteinplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-          nrow = 2,ncol = 2,labels = list('A','B','C','D'))
-dev.off()
+ggsave(figure1,filename = './Output/Figure1.eps',
+       dpi = 'retina',width = 8.5,height = 7,device = cairo_ps,fallback_resolution = 300)
 
 ## Sodium-only figure
 
@@ -329,14 +329,14 @@ pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) 
   mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
 pop.na$Type %<>% factor(levels = c('True','Biomarker','Self-reported'))
 
-naplot = ggplot(pop.na,aes(x=Sodium,linetype = Type))+
+figure1.sodiumonly.naplot = ggplot(pop.na,aes(x=Sodium,linetype = Type))+
   stat_density(geom="line", position="identity")+
   theme_bw()+ylab('Density')+xlab('Log-Sodium')+
   theme_bw() + 
   scale_linetype_manual(values = c('solid','longdash','dotted'),
                         labels=as.character(apply(cbind(c('True','Biomarker','Self-reported'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})))+
   guides(linetype = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1)+
-  theme(legend.title=element_blank(),legend.position = c(0.8,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))
+  theme(legend.title=element_blank(),legend.position = 'top',legend.direction = 'vertical',legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))
 
 dt1 <- melt(pop[pop$v.num==1,c('subid','sex','bkg','age','bmi','ln_na_true','ln_na_bio1','ln_na_avg')],
             id.vars = c('subid','sex','bkg'),measure.vars = c('ln_na_true','ln_na_bio1','ln_na_avg'),variable.name = 'Nutrient',value.name = 'Value')
@@ -344,10 +344,9 @@ dt1$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female')) %<>% fac
 dt1$bkg %<>% plyr::mapvalues(from = c('D','PR','O'),to = c('Dominican','Puerto Rican','Other')) %<>% factor(levels = c('Dominican','Puerto Rican','Other'))
 dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-\nreported')) %<>% factor(levels = c('True','Biomarker','Self-\nreported'))
 
-fig1 <-  ggplot(dt1,aes(y = Value,x = Nutrient))+
+figure1.sodiumonly.boxplot <-  ggplot(dt1,aes(y = Value,x = Nutrient))+
   facet_grid(cols = vars(bkg),rows = vars(sex))+
-  geom_boxplot(outlier.alpha = 0.1) +
-  # scale_fill_manual(values = RColorBrewer::brewer.pal(9,'Greys')[c(4,6)]) +
+  geom_boxplot(outlier.alpha = 0.25,outlier.size = 0.75) +
   theme_bw() +
   theme(axis.title.x = element_blank(),legend.title = element_blank(),
         legend.position = 'bottom',legend.direction = 'horizontal',
@@ -355,28 +354,27 @@ fig1 <-  ggplot(dt1,aes(y = Value,x = Nutrient))+
         legend.text = element_text(size=pt.title),axis.text.x = element_text(angle = 30, hjust = 1))+
   ylab('Log-Sodium') + xlab('Nutrient')
 
-fig2 <- ggplot(merge(dt1,pop[pop$v.num==1,c('subid','sbp')],by = 'subid',all.x = T))+
-  facet_grid(cols = vars(bkg),rows = vars(sex))+
-  geom_smooth(method = lm,aes(x = Value,y = sbp,linetype = Nutrient),color = 'black',se = T,size = 0.5) +
-  scale_linetype_manual(values = c('solid','longdash','dotted')) +
-  theme_bw()+
-  guides(linetype = guide_legend(override.aes = list(size = rel(0.3))))+
-  xlab('Log-Sodium')+ylab('Systolic Blood Pressure')+
-  theme(legend.title=element_blank(),legend.position = 'none')
+# figure1.sodiumonly.reg <- ggplot(merge(dt1,pop[pop$v.num==1,c('subid','sbp')],by = 'subid',all.x = T))+
+#   facet_grid(cols = vars(bkg),rows = vars(sex))+
+#   geom_smooth(method = lm,aes(x = Value,y = sbp,linetype = Nutrient),color = 'black',se = T,size = 0.5) +
+#   scale_linetype_manual(values = c('solid','longdash','dotted')) +
+#   theme_bw()+
+#   guides(linetype = guide_legend(override.aes = list(size = rel(0.3))))+
+#   xlab('Log-Sodium')+ylab('Systolic Blood Pressure')+
+#   theme(legend.title=element_blank(),legend.position = 'none')
 
+# figure1.sodiumonly <- ggarrange(figure1.sodiumonly.naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+#                                 figure1.sodiumonly.bottom,
+#                                 ncol = 1,nrow = 2,labels = list('A'),heights = c(0.35,0.65))
 
-fig.bottom <- ggarrange(fig1+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                        fig2+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                        ncol = 2,nrow = 1,labels = list('B','C'))
-  
+figure1.sodiumonly <- ggarrange(figure1.sodiumonly.naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                                       figure1.sodiumonly.boxplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                                       ncol = 2,nrow = 1,labels = list('A','B'))
+
 # Organizing plot
 if(!dir.exists('./Output')){system('mkdir Output')}
-pdf('./Output/Figure1_SodiumOnly.pdf',width = 9,height = 8)
-ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-          fig.bottom,
-          ncol = 1,nrow = 2,labels = list('A'),heights = c(0.35,0.65))
-dev.off()
-
+ggsave(figure1.sodiumonly,filename = './Output/Figure1_SodiumOnly.eps',
+       dpi = 'retina',width = 8,height = 4,device = cairo_ps,fallback_resolution = 300)
 
 ###########################################
 ############# Creating Table ##############
