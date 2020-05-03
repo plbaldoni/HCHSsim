@@ -400,7 +400,7 @@ fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
           axis.text = element_text(size = 12),legend.text = element_text(size = 12),
           legend.title = element_text(size = 12))
 
-ggsave(fig.time,filename = './Output/SuppFigure1.eps',
+ggsave(fig.time,filename = './Output/SuppFigure2.eps',
        dpi = 'retina',height = 11/2,width = 8.5/1.25,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the output
