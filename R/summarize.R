@@ -366,17 +366,17 @@ fig.m2 =  ggplot(data = m2.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Me
 ### Saving the plots
 
 ggsave(fig.m1,filename = './Output/Figure3A.eps',
-       dpi = 'retina',height = 8.5,width = 11,device = cairo_ps,fallback_resolution = 300)
+       dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ggsave(fig.m2,filename = './Output/Figure3B.pdf',
-       dpi = 'retina',height = 8.5,width = 11,device = cairo_ps,fallback_resolution = 300)
+       dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
 
 ggsave(fig,filename = './Output/Figure3.pdf',
-       dpi = 'retina',height = 11,width = 8.5,device = cairo_ps,fallback_resolution = 300)
+       dpi = 'retina',height = 11,width = 8.5,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 # Computing time
 
@@ -398,7 +398,7 @@ fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
           legend.title = element_text(size = 12))
 
 ggsave(fig.time,filename = './Output/SuppFigure1.pdf',
-       dpi = 'retina',height = 11/2,width = 8.5/1.25,device = cairo_ps,fallback_resolution = 300)
+       dpi = 'retina',height = 11/2,width = 8.5/1.25,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the output
 
