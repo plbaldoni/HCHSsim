@@ -226,36 +226,36 @@ summ = function(df,method,model,raking,nboot=500,
         #     facet_wrap(~Coeff,ncol=3,scales='free')+theme_bw()+
         #     geom_vline(data=subset(pop.coeff,Model==model,select=c(Coeff,Estimate)),aes(xintercept=Estimate))+
         #     xlab('Estimated coefficients from outcome-calibrated model')
-        # ggsave(filename = paste('./Misc/Hist',model,paste0(method,'Est','_',func.avg,'_','.pdf'),sep='_'),plot = fig.CalibEst)
+        # ggsave(filename = paste('./Misc/Hist',model,paste0(method,'Est','_',func.avg,'_','.eps'),sep='_'),plot = fig.CalibEst)
         # 
         # fig.AvgEst =  ggplot(data=df.avg.est)+geom_histogram(position='identity',aes(x=Avg.Est,y=..density..))+
         #     facet_wrap(~Coeff,ncol=3,scales='free')+theme_bw()+
         #     geom_vline(data=subset(pop.coeff,Model==model,select=c(Coeff,Estimate)),aes(xintercept=Estimate))+
         #     xlab('Estimated coefficients from outcome-average model')
-        # ggsave(filename = paste('./Misc/Hist',model,'AvgEst.pdf',sep='_'),plot = fig.AvgEst)
+        # ggsave(filename = paste('./Misc/Hist',model,'AvgEst.eps',sep='_'),plot = fig.AvgEst)
         # 
         # fig.TrueEst =  ggplot(data=df.true.est)+geom_histogram(position='identity',aes(x=True.Est,y=..density..))+
         #     facet_wrap(~Coeff,ncol=3,scales='free')+theme_bw()+
         #     geom_vline(data=subset(pop.coeff,Model==model,select=c(Coeff,Estimate)),aes(xintercept=Estimate))+
         #     xlab('Estimated coefficients from outcome-true model')
-        # ggsave(filename = paste('./Misc/Hist',model,'TrueEst.pdf',sep='_'),plot = fig.TrueEst)
+        # ggsave(filename = paste('./Misc/Hist',model,'TrueEst.eps',sep='_'),plot = fig.TrueEst)
         # 
         # fig.BioEst =  ggplot(data=df.bio.est)+geom_histogram(position='identity',aes(x=Bio.Est,y=..density..))+
         #     facet_wrap(~Coeff,ncol=3,scales='free')+theme_bw()+
         #     geom_vline(data=subset(pop.coeff,Model==model,select=c(Coeff,Estimate)),aes(xintercept=Estimate))+
         #     xlab('Estimated coefficients from outcome-biomarker (phase 2) model')
-        # ggsave(filename = paste('./Misc/Hist',model,'BioEst.pdf',sep='_'),plot = fig.BioEst)
+        # ggsave(filename = paste('./Misc/Hist',model,'BioEst.eps',sep='_'),plot = fig.BioEst)
         # 
         # fig.vif1 = ggplot(data=df[!(Coeff=='Intercept'),])+geom_histogram(position='identity',aes(x=VIF,y=..density..))+
         #     facet_wrap(~Coeff,ncol=3,scales='free')+theme_bw()+geom_vline(aes(xintercept=5),color='red')+
         #     xlab('Variance Inflation Factor')+ylab('Density')
-        # ggsave(filename = paste('./Misc/VIF',model,'Hist.pdf',sep='_'),plot = fig.vif1)
+        # ggsave(filename = paste('./Misc/VIF',model,'Hist.eps',sep='_'),plot = fig.vif1)
         # 
         # fig.vif2 = ggplot(data=df[!(Coeff=='Intercept'),],aes(x=VIF,y=Est))+
         #     geom_smooth(se=T)+
         #     facet_wrap(~Coeff,ncol=3,scales='free')+geom_vline(aes(xintercept=5),color='red')+
         #     xlab('Variance Inflation Factor')+ylab('Parameter estimates from Outcome-calibrated model')
-        # ggsave(filename = paste('./Misc/VIF',model,'Scatter.pdf',sep='_'),plot = fig.vif2,dpi='screen')
+        # ggsave(filename = paste('./Misc/VIF',model,'Scatter.eps',sep='_'),plot = fig.vif2,dpi='screen')
     }
 }
 
@@ -368,17 +368,17 @@ fig.m2 =  ggplot(data = m2.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Me
 ggsave(fig.m1,filename = './Output/Figure3A.eps',
        dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
-ggsave(fig.m2,filename = './Output/Figure3B.pdf',
+ggsave(fig.m2,filename = './Output/Figure3B.eps',
        dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 pt.text <- 8
 pt.title <- 10
 
-fig = ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+fig = ggpubr::ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
                 nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
 
-ggsave(fig,filename = './Output/Figure3.pdf',
+ggsave(fig,filename = './Output/Figure3.eps',
        dpi = 'retina',height = 11,width = 8.5,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 # Computing time
@@ -400,7 +400,7 @@ fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
           axis.text = element_text(size = 12),legend.text = element_text(size = 12),
           legend.title = element_text(size = 12))
 
-ggsave(fig.time,filename = './Output/SuppFigure1.pdf',
+ggsave(fig.time,filename = './Output/SuppFigure1.eps',
        dpi = 'retina',height = 11/2,width = 8.5/1.25,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the output
