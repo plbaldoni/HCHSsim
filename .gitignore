@@ -6,4 +6,3 @@ RData/
 Confidential/
 *.Rout
 slurm*
-R/runRaking*
