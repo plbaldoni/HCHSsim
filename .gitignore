@@ -6,3 +6,4 @@ RData/
 Confidential/
 *.Rout
 slurm*
+Output/
