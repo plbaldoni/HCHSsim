@@ -18,7 +18,3 @@ To run the simulation pipeline, you should:
 3. Run *sampleTargetPopulation.R*, which will generate 1000 samples from the target population using a stratified three-stage sampling scheme. Sampling probability weights and design variables are included in the final data sets.
 4. Run *runBootstrap.R* and *runMI.R* to run the proposed approaches for standard error correction.
 5. Run *summarize.R* to summarize the results from the simulation study. See output files in the `./Output/` folder.
-
-
-***
-The *runRaking.R* script attempts to implement the raking estimator as a third alternative to correct the standard errors from the outcome model with biomarker-calibrated nutrients as the main exposure. The current implementation needs to be revised.
