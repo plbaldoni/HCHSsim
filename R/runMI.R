@@ -77,6 +77,7 @@ for(i in idx){
       # Saving parameters
       m1.list.mi[[i]][[j]] <- data.frame(Sim=i,MI=j,Coeff=names(m1.calib.mi$coefficients),
                                         Est=as.numeric(m1.calib.mi$coefficients),SE=as.numeric(SE(m1.calib.mi)),
+                                        RegCalib.Est = as.numeric(lm.lsodi$coefficients), RegCalib.SE = as.numeric(SE(lm.lsodi)),
                                         True.Est=as.numeric(m1.true$coefficients),True.SE = as.numeric(SE(m1.true)),
                                         Avg.Est=as.numeric(m1.avg$coefficients),Avg.SE = as.numeric(SE(m1.avg)),
                                         Calib.Est=as.numeric(m1.calib$coefficients),Calib.SE = as.numeric(SE(m1.calib)))
@@ -99,6 +100,7 @@ for(i in idx){
       # Saving parameters
       m2.list.mi[[i]][[j]] <- data.frame(Sim=i,MI=j,Coeff=names(m2.calib.mi$coefficients),
                                         Est=as.numeric(m2.calib.mi$coefficients),SE=as.numeric(SE(m2.calib.mi)),
+                                        RegCalib.Est = as.numeric(lm.lsodi$coefficients), RegCalib.SE = as.numeric(SE(lm.lsodi)),
                                         True.Est=as.numeric(m2.true$coefficients),True.SE = as.numeric(SE(m2.true)),
                                         Avg.Est=as.numeric(m2.avg$coefficients),Avg.SE = as.numeric(SE(m2.avg)),
                                         Calib.Est=as.numeric(m2.calib$coefficients),Calib.SE = as.numeric(SE(m2.calib)))
