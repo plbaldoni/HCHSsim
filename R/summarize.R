@@ -375,8 +375,8 @@ pt.text <- 8
 pt.title <- 10
 
 fig = ggpubr::ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
+                        fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                        nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
 
 ggsave(fig,filename = './Output/Figure3.eps',
        dpi = 'retina',height = 11,width = 8.5,device = grDevices::cairo_ps,fallback_resolution = 300)
@@ -501,4 +501,57 @@ sink()
 sink('./Output/SuppTable4.tex')
 kable(t.m2.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with parametric multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+sink()
+
+### Checking bias & coverage of true regression calibration paramaters across 1000 simulated data
+
+load('./RData/TargetPopulationData.RData')
+pop <- pop[(v.num==1),-1]
+
+# Fitting the model in the population
+
+lm.regcalib = glm(c_ln_na_bio1 ~ c_age + c_bmi + c_ln_na_avg + high_chol + usborn + female + bkg_pr + bkg_o,data=pop)
+
+df.lm.regcalib <- data.table(Coeff = names(lm.regcalib$coefficients),True.Est = as.numeric(lm.regcalib$coefficients))
+
+df.lm.regcalib$Coeff %<>% plyr::mapvalues(from = c('(Intercept)', 'c_age', 'c_bmi', 'c_ln_na_avg', 'high_chol', 'usborn','female', 'bkg_pr', 'bkg_o'),
+                                          to = c('Intercept', 'Age (Centered)', 'BMI (Centered)', 'Log-Sodium (Naive)', 'High Cholesterol', 'US Born','Sex: Female', 'Background: Puerto Rico', 'Background: Other'))
+
+# Sumarizing the results across simulations
+
+df.regcalib <- df.m1.boot[,list(RegCalib.Est = unique(RegCalib.Est),
+                                RegCalib.SE = unique(RegCalib.SE)),by=c('Sim','Coeff')]
+
+df.regcalib$Coeff %<>% plyr::mapvalues(from = c('(Intercept)', 'c_age', 'c_bmi', 'c_ln_na_calib.boot', 'high_chol', 'usborn','female', 'bkg_pr', 'bkg_o'),
+                                       to = c('Intercept', 'Age (Centered)', 'BMI (Centered)', 'Log-Sodium (Naive)', 'High Cholesterol', 'US Born','Sex: Female', 'Background: Puerto Rico', 'Background: Other'))
+
+# Merging
+
+df.regcalib <- merge(df.regcalib,df.lm.regcalib,by = 'Coeff',all.x = T)
+
+# Calculating metrics
+
+df.regcalib <- df.regcalib[,Coverage := 1*((True.Est>=(RegCalib.Est-1.96*RegCalib.SE)) | (True.Est<=(RegCalib.Est+1.96*RegCalib.SE)))]
+df.regcalib <- df.regcalib[,Bias := RegCalib.Est - True.Est]
+
+df.regcalib <- df.regcalib[,list(True.Est = unique(True.Est),
+                                 Average.Est = mean(RegCalib.Est),
+                                 Relative.Bias = mean((RegCalib.Est-True.Est)/True.Est),
+                                 Average.SE = mean(RegCalib.SE),
+                                 Empirical.SE = sd(RegCalib.Est),
+                                 Coverage = mean(1*((True.Est>RegCalib.Est-1.96*RegCalib.SE)&(True.Est<RegCalib.Est+1.96*RegCalib.SE)))),by = 'Coeff']
+
+df.regcalib$Coeff %<>% factor(levels = c('Intercept', 'Log-Sodium (Naive)',  'Age (Centered)', 'BMI (Centered)', 'High Cholesterol', 'US Born','Sex: Female', 'Background: Puerto Rico', 'Background: Other'))
+df.regcalib <- df.regcalib[order(Coeff),]
+
+# Column names
+setnames(df.regcalib,c('Coefficient','True Parameter','Estimate','Relative Bias','SE','Empirical SE','Coverage'))
+
+# Exporting table
+
+sink('./Output/SuppTable5.tex')
+df.regcalib %>%
+    kable(format = 'latex',digits = 3,booktabs = T,escape = F,
+          caption = 'Simulation Metrics of Regression Calibration Across 1000 Simulations.')%>%kable_styling(latex_options = 'scale_down')%>%
+    footnote(general = "Average values of Estimate, Relative Bias, and SE (standard error) calculated across 1000 simulations of estimates from the regression calibration fitted in SOLNAS simulated phase 2 subsample. Empirical SE calculated as the standard deviation of estimated coefficients. Coverage indicates the proportion of 95 percent confidence intervals covering the true parameter.",escape = F,threeparttable = T)
 sink()
