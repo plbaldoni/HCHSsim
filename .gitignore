@@ -7,3 +7,4 @@ Confidential/
 *.Rout
 slurm*
 Output/
+.DS_Store
