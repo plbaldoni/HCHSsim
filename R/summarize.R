@@ -7,6 +7,42 @@ library(readr)
 library(ggpubr)
 library(kableExtra)
 
+# Defining plot theme
+
+theme_my <- function(base_size = 10, base_family = "sans") {
+    
+    # base_size <- base_size/.pt # See https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#font-size why
+    
+    txt <- element_text(size = base_size, colour = "black", face = "plain",family = base_family)
+    
+    theme_bw(base_size = base_size, base_family = base_family) +
+        theme(strip.text = txt,
+              
+              panel.grid = element_blank(),
+              
+              legend.key = element_blank(), 
+              strip.background = element_blank(), 
+              
+              text = txt, 
+              plot.title = txt, 
+              
+              axis.title = txt, 
+              axis.text = txt, 
+              
+              legend.title = txt, 
+              legend.text = txt) 
+}
+
+equal_breaks <- function(n = 3, s = 0.05, ...){
+    function(x){
+        # rescaling
+        d <- s * diff(range(x)) / (1+2*s)
+        seq(min(x)+d, max(x)-d, length=n)
+    }
+}
+
+# Loading output from simulation study
+
 load('./Output/bootstrap.RData')
 
 df.m1.boot <- m1.list.boot %<>% rbindlist()
@@ -20,11 +56,6 @@ df.m1.mi <- m1.list.mi %<>% rbindlist()
 df.m2.mi <- m2.list.mi %<>% rbindlist()
 df.m1.mi.time <- m1.list.mitime %<>% rbindlist()
 df.m2.mi.time <- m2.list.mitime %<>% rbindlist()
-
-# load('./Output/raking_BetaVersion.RData')
-# 
-# df.m1.raking <- m1.list.raking %<>% rbindlist()
-# df.m2.raking <- m2.list.raking %<>% rbindlist()
 
 # Removing unecessary data
 rm(m1.list.boot,m2.list.boot,m1.list.mitime,m2.list.mitime,m1.list.mi,m2.list.mi)
@@ -266,9 +297,6 @@ m1.boot = summ(df=df.m1.boot,method='Bootstrap',model='Hypertension',raking=F,di
 m1.mi = summ(df=df.m1.mi,method='MI',model='Hypertension',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-# m1.raking = summ(df=df.m1.raking,method='Raking',model='Hypertension',raking=T,digits = 3,
-#                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
                func.avg = 'mean',func.sd = 'sd',
@@ -276,110 +304,134 @@ m2.boot = summ(df=df.m2.boot,method='Bootstrap',model='SBP',raking=F,digits = 3,
 m2.mi = summ(df=df.m2.mi,method='MI',model='SBP',raking=F,digits = 3,
              func.avg = 'mean',func.sd = 'sd',
              func.var.avg = 'median',func.var.sd = 'mad')
-# m2.raking = summ(df=df.m2.raking,method='Raking',model='SBP',raking=T,digits = 3,
-#                  func.avg = 'mean',func.sd = 'sd',
-#                  func.var.avg = 'median',func.var.sd = 'mad')
 
 ### Organizing the output
 key = Coeff
 
 m1.boot = merge(subset(pop.coeff,Model=='Hypertension',select=c(Coeff,Estimate)),m1.boot,by='Coeff',all.x=T);m1.boot.out <- m1.boot[order(match(Coeff,key)),];m1.boot.out[,Estimate := round(Estimate,3)]
 m1.mi = merge(subset(pop.coeff,Model=='Hypertension',select=c(Coeff,Estimate)),m1.mi,by='Coeff',all.x=T);m1.mi.out <- m1.mi[order(match(Coeff,key)),];m1.mi.out[,Estimate := round(Estimate,3)]
-# m1.raking = merge(subset(pop.coeff,Model=='Hypertension',select=c(Coeff,Estimate)),m1.raking,by='Coeff',all.x=T);m1.raking.out <- m1.raking[order(match(Coeff,key)),];m1.raking.out[,Estimate := round(Estimate,3)]
 
 m2.boot = merge(subset(pop.coeff,Model=='SBP',select=c(Coeff,Estimate)),m2.boot,by='Coeff',all.x=T);m2.boot.out <- m2.boot[order(match(Coeff,key)),];m2.boot.out[,Estimate := round(Estimate,3)]
 m2.mi = merge(subset(pop.coeff,Model=='SBP',select=c(Coeff,Estimate)),m2.mi,by='Coeff',all.x=T);m2.mi.out <- m2.mi[order(match(Coeff,key)),];m2.mi.out[,Estimate := round(Estimate,3)]
-# m2.raking = merge(subset(pop.coeff,Model=='SBP',select=c(Coeff,Estimate)),m2.raking,by='Coeff',all.x=T);m2.raking.out <- m2.raking[order(match(Coeff,key)),];m2.raking.out[,Estimate := round(Estimate,3)]
 
 # Saving 
 write.csv(m1.boot.out,file=paste0('./Output/summarize_bootstrap_logistic.csv'))
 write.csv(m2.boot.out,file=paste0('./Output/summarize_bootstrap_linear.csv'))
 write.csv(m1.mi.out,file=paste0('./Output/summarize_MI_logistic.csv'))
 write.csv(m2.mi.out,file=paste0('./Output/summarize_MI_linear.csv'))
-# write.csv(m1.raking.out,file=paste0('./Output/summarize_raking_logistic.csv'))
-# write.csv(m2.raking.out,file=paste0('./Output/summarize_raking_linear.csv'))
 
 ### Organizing the data to plot
 
 m1.plot <- rbindlist(list(m1.boot.out[,c('Coeff','Estimate','True.Est','True.ESE','True.SE','True.Cov')][,Method := 'True (Phase1, Unobservable)'],
-                          # m1.raking.out[,c('Coeff','Estimate','Bio.Moments.Est','Bio.Moments.ESE','Bio.Moments.SE','Bio.Moments.Cov')][,Method := 'Biomarker (Phase 2)'],
-                          # m1.raking.out[,c('Coeff','Estimate','Bio.Moments.Est','Bio.Moments.ESE','Bio.Moments.Corrected.SE','Bio.Moments.Corrected.Cov')][,Method := 'Biomarker w/ Bootstrap (Phase 2)'],
                           m1.boot.out[,c('Coeff','Estimate','Naive.Est','Naive.ESE','Naive.SE','Naive.Cov')][,Method := 'Naive 2-day Mean (Phase 1)'],
                           m1.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Calib.SE','Calib.Cov')][,Method := 'Naive Calibrated (Phase 1)'],
                           m1.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ Bootstrap (Phase 1)'],
                           m1.mi.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ MI (Phase 1)']),use.names=FALSE)
 setnames(m1.plot,c('Coeff','True','Estimate','ESE','SE','Cov','Method'))
-# m1.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
+
 m1.plot$Coeff %<>% factor(levels = unique(.))
 m1.plot$Method %<>% as.factor() %<>% factor(levels = unique(.))
 m1.plot[,Lbl := min(Estimate-SE,Estimate-ESE)-max(SE,ESE),by='Coeff']
 
 m2.plot <- rbindlist(list(m2.boot.out[,c('Coeff','Estimate','True.Est','True.ESE','True.SE','True.Cov')][,Method := 'True (Phase1, Unobservable)'],
-                          # m2.raking.out[,c('Coeff','Estimate','Bio.Moments.Est','Bio.Moments.ESE','Bio.Moments.SE','Bio.Moments.Cov')][,Method := 'Biomarker (Phase 2)'],
-                          # m2.raking.out[,c('Coeff','Estimate','Bio.Moments.Est','Bio.Moments.ESE','Bio.Moments.Corrected.SE','Bio.Moments.Corrected.Cov')][,Method := 'Biomarker w/ Bootstrap (Phase 2)'],
                           m2.boot.out[,c('Coeff','Estimate','Naive.Est','Naive.ESE','Naive.SE','Naive.Cov')][,Method := 'Naive 2-day Mean (Phase 1)'],
                           m2.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Calib.SE','Calib.Cov')][,Method := 'Naive Calibrated (Phase 1)'],
                           m2.boot.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ Bootstrap (Phase 1)'],
                           m2.mi.out[,c('Coeff','Estimate','Calib.Est','Calib.ESE','Corrected.SE','Corrected.Cov.Normal')][,Method := 'Naive Calibrated w/ MI (Phase 1)']),use.names=FALSE)
 setnames(m2.plot,c('Coeff','True','Estimate','ESE','SE','Cov','Method'))
-# m2.plot$Coeff %<>% mapvalues(from = unique(.),to = c('Intercept','Age','BMI','Log-Sodium','High Chol.','US Born','Female','Bkg: Puerto Rican','Bkg: Other'))
+
 m2.plot$Coeff %<>% factor(levels = unique(.))
 m2.plot$Method %<>% as.factor() %<>% factor(levels = unique(.))
 m2.plot[,Lbl := min(Estimate-SE,Estimate-ESE)-max(SE,ESE),by='Coeff']
 
 ### Subsetting to the relevant methods
 m1.plot.sub <- m1.plot[Method %in% c('True (Phase1, Unobservable)','Naive 2-day Mean (Phase 1)','Naive Calibrated w/ Bootstrap (Phase 1)','Naive Calibrated w/ MI (Phase 1)'),]
-m1.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Calibrated\n(Bootstrap)','Calibrated\n(MI)'))
+m1.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Bootstrap','MI'))
 m1.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(m1.plot.sub$Coeff[!m1.plot.sub$Coeff%in%c('Intercept','Log-Sodium')]))))
 
 m2.plot.sub <- m2.plot[Method %in% c('True (Phase1, Unobservable)','Naive 2-day Mean (Phase 1)','Naive Calibrated w/ Bootstrap (Phase 1)','Naive Calibrated w/ MI (Phase 1)'),]
-m2.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Calibrated\n(Bootstrap)','Calibrated\n(MI)'))
+m2.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Bootstrap','MI'))
 m2.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(m2.plot.sub$Coeff[!m2.plot.sub$Coeff%in%c('Intercept','Log-Sodium')]))))
 
 ### Plotting Error bars
-# names(methcol) = c('True\n(Unobservable)','Naive','Calibrated\n(Bootstrap)','Calibrated\n(MI)')
 
-fig.m1 = ggplot(data = m1.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Method, y = Estimate,shape = Method)) +
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = m1.plot.sub, aes(yintercept = True))+
-    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
-    geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
-    geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
-    geom_text(aes(label = paste0(formatC(round(100*Cov,1),format='f',digits=1),'%'),y = Lbl),size = 3.5,position = position_dodge(0.9),vjust = 0,fontface = "bold") +
-    theme_bw()+
-    scale_color_manual(values = coeffcol)+
-    guides(shape = FALSE, color = FALSE)+
-    theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,axis.title.x = element_blank(),legend.title = element_blank())
+fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
+    s <- 0.25
+    
+    subdt <- m1.plot.sub[!Method=="True\n(Unobservable)" & Coeff==coef,]
+    
+    range <- c(subdt[,min(Estimate-ESE)],subdt[,max(Estimate+ESE)])
+    range <- c(range[1]*ifelse(range[1]<0,1+s,1-s),range[2]*ifelse(range[2]<0,1-s,1+s))
+    range <- c(plyr::round_any(range[1],ifelse(abs(diff(range))<0.1,0.01,0.1),floor),
+               plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
+    
+    subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
+        geom_hline(data = subdt, aes(yintercept = True))+
+        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+        geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
+        geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
+        theme_my(base_size = 12)+
+        scale_color_manual(values = coeffcol)+
+        guides(shape = FALSE, color = FALSE)+
+        theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
+        theme(axis.text.x=element_text(angle=20,hjust=1),axis.title.x = element_blank(),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
+    
+    return(subfig)
+})
 
-fig.m2 =  ggplot(data = m2.plot.sub[!Method=="True\n(Unobservable)",],aes(x = Method, y = Estimate,shape = Method)) +
-    facet_wrap(~Coeff,scales = 'free_y') +
-    geom_hline(data = m2.plot.sub, aes(yintercept = True))+
-    geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
-    geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
-    geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
-    geom_text(aes(label = paste0(formatC(round(100*Cov,1),format='f',digits=1),'%'),y = Lbl),size = 3.5,position = position_dodge(0.9),vjust = 0,fontface = "bold") +
-    theme_bw()+
-    scale_color_manual(values = coeffcol)+
-    guides(shape = FALSE, color = FALSE)+
-    theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,axis.title.x = element_blank(),legend.title = element_blank())
+fig.m1 <- ggpubr::ggarrange(plotlist = fig.m1.ls,ncol = 3,nrow = 3,labels = as.list(paste0(LETTERS[1:9],')')),
+                            hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+
+fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
+    
+    s <- ifelse(coef == 'Intercept',0.01,ifelse(coef == 'Background: Puerto Rico',0.4,0.25))
+    
+    subdt <- m2.plot.sub[!Method=="True\n(Unobservable)" & Coeff==coef,]
+    
+    range <- c(subdt[,min(Estimate-ESE)],subdt[,max(Estimate+ESE)])
+    range <- c(range[1]*ifelse(range[1]<0,1+s,1-s),range[2]*ifelse(range[2]<0,1-s,1+s))
+    range <- c(plyr::round_any(range[1],ifelse(abs(diff(range))<0.1,0.01,0.1),floor),
+               plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
+    
+    subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
+        geom_hline(data = subdt, aes(yintercept = True))+
+        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+        geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
+        geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
+        theme_my(base_size = 12)+
+        scale_color_manual(values = coeffcol)+
+        guides(shape = FALSE, color = FALSE)+
+        theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
+        theme(axis.text.x=element_text(angle=20,hjust=1),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
+    
+    return(subfig)
+})
+
+fig.m2 <- ggpubr::ggarrange(plotlist = fig.m2.ls,ncol = 3,nrow = 3,labels = as.list(paste0(LETTERS[10:18],')')),
+                            hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+
+### Put them together
+
+fig4 <- ggpubr::ggarrange(fig.m1,fig.m2,ncol = 1,nrow = 2)
+fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = 12))
 
 ### Saving the plots
 
-ggsave(fig.m1,filename = './Output/Figure3A.eps',
-       dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
 
-ggsave(fig.m2,filename = './Output/Figure3B.eps',
-       dpi = 'retina',height = 8.5,width = 11,device = grDevices::cairo_ps,fallback_resolution = 300)
+ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 9,width = 7)
 
-pt.text <- 8
-pt.title <- 10
-
-fig = ggpubr::ggarrange(fig.m1+theme(plot.margin = unit(c(5.5, 5.5, 7.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                        fig.m2+theme(plot.margin = unit(c(7.5, 5.5, 5.5, 5.5), "points"))+scale_y_continuous(labels = function(x) sprintf("%.2f", x))+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                        nrow=2,ncol=1,legend = 'bottom',common.legend = T,labels = list('A','B'))
-
-ggsave(fig,filename = './Output/Figure3.eps',
-       dpi = 'retina',height = 11,width = 8.5,device = grDevices::cairo_ps,fallback_resolution = 300)
+for(i in 1:9){
+    subfig <- ggpubr::ggarrange(fig.m1.ls[[i]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
+                                hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+    ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
+}
+for(i in 10:18){
+    subfig <- ggpubr::ggarrange(fig.m2.ls[[i-9]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
+                                hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+    ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
+}
 
 # Computing time
 
