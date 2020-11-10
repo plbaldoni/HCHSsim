@@ -6,17 +6,25 @@ library(data.table)
 library(readr)
 library(ggpubr)
 library(kableExtra)
+library(tidyr)
+library(dplyr)
 
 # Defining plot theme
 
+convertPt <- function(x){
+    return(x/(ggplot2::.pt*72.27/96))
+}
+
 theme_my <- function(base_size = 10, base_family = "sans") {
     
-    # base_size <- base_size/.pt # See https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#font-size why
+    base_size <- base_size/.pt # See https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#font-size why
     
     txt <- element_text(size = base_size, colour = "black", face = "plain",family = base_family)
     
     theme_bw(base_size = base_size, base_family = base_family) +
         theme(strip.text = txt,
+              axis.ticks = element_line(colour = 'black', size = convertPt(1)),
+              panel.border = element_rect(linetype = "solid", colour = "black", size=convertPt(1)),
               
               panel.grid = element_blank(),
               
@@ -353,7 +361,11 @@ m2.plot.sub <- m2.plot[Method %in% c('True (Phase1, Unobservable)','Naive 2-day 
 m2.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Bootstrap','MI'))
 m2.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(m2.plot.sub$Coeff[!m2.plot.sub$Coeff%in%c('Intercept','Log-Sodium')]))))
 
+#####################################################################
 ### Plotting Error bars
+#####################################################################
+
+sizeLetter.erroBars <- 30
 
 fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
     s <- 0.25
@@ -366,11 +378,11 @@ fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Co
                plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
     
     subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
-        geom_hline(data = subdt, aes(yintercept = True))+
-        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+        geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1))+
+        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=convertPt(1)) +
         geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
         geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
-        theme_my(base_size = 12)+
+        theme_my(base_size = sizeLetter.erroBars)+
         scale_color_manual(values = coeffcol)+
         guides(shape = FALSE, color = FALSE)+
         theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
@@ -381,7 +393,7 @@ fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Co
 })
 
 fig.m1 <- ggpubr::ggarrange(plotlist = fig.m1.ls,ncol = 3,nrow = 3,labels = as.list(paste0(LETTERS[1:9],')')),
-                            hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+                            hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
 
 fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
     
@@ -395,11 +407,11 @@ fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Co
                plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
     
     subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
-        geom_hline(data = subdt, aes(yintercept = True))+
-        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=0.5) +
+        geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1))+
+        geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=convertPt(1)) +
         geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
         geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
-        theme_my(base_size = 12)+
+        theme_my(base_size = sizeLetter.erroBars)+
         scale_color_manual(values = coeffcol)+
         guides(shape = FALSE, color = FALSE)+
         theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
@@ -410,26 +422,24 @@ fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Co
 })
 
 fig.m2 <- ggpubr::ggarrange(plotlist = fig.m2.ls,ncol = 3,nrow = 3,labels = as.list(paste0(LETTERS[10:18],')')),
-                            hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+                            hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
 
 ### Put them together
 
 fig4 <- ggpubr::ggarrange(fig.m1,fig.m2,ncol = 1,nrow = 2)
-fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = 12))
+fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = sizeLetter.erroBars/.pt))
+ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 9,width = 7)
 
 ### Saving the plots
 
-
-ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 9,width = 7)
-
 for(i in 1:9){
     subfig <- ggpubr::ggarrange(fig.m1.ls[[i]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
-                                hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+                                hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
     ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
 }
 for(i in 10:18){
     subfig <- ggpubr::ggarrange(fig.m2.ls[[i-9]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
-                                hjust = 0,vjust = 1.25,font.label = list(size = 12,face = 'plain'))
+                                hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
     ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
 }
 
@@ -445,12 +455,12 @@ fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
     geom_boxplot(aes(fill = Method))+
     theme_bw()+
     ylab('Log-10 computing time (in seconds) across 1000 simulations')+
-    geom_hline(yintercept = c(log10(10),log10(15)),linetype = 'dashed',color = 'grey',alpha = 0.75)+
+    geom_hline(yintercept = c(log10(15),log10(30)),linetype = 'dashed',color = 'grey',alpha = 0.75)+
     scale_fill_brewer(palette = "Set1")+
-    annotate('text',x = c(2.5,2.5), y = 0.95*c(log10(10),log10(15)),label = c('10 sec.','15 sec.'))+
-    theme(legend.position = c(0.75,0.75),axis.title = element_text(size = 12),
+    annotate('text',x = c(2.5,2.5), y = 0.975*c(log10(15),log10(30)),label = c('15 sec.','30 sec.'))+
+    theme(legend.position = c(0.25,0.90),axis.title = element_text(size = 12),
           axis.text = element_text(size = 12),legend.text = element_text(size = 12),
-          legend.title = element_text(size = 12))
+          legend.title = element_text(size = 12),legend.background = element_rect(fill=alpha('white', 0)))
 
 ggsave(fig.time,filename = './Output/SuppFigure2.eps',
        dpi = 'retina',height = 11/2,width = 8.5/1.25,device = grDevices::cairo_ps,fallback_resolution = 300)
@@ -535,22 +545,27 @@ t.m2.boot.out<-t.m2.boot.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sod
 t.m1.mi.out<-t.m1.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
 t.m2.mi.out<-t.m2.mi.out[,c('Type', "Coeff","Intercept","Age","BMI","Log-Sodium","High Cholesterol","US Born","Sex: Female","Background: Puerto Rico","Background: Other")]
 
-sink('./Output/SuppTable1.tex')
+t.m1.boot.out[,c(colnames(t.m1.boot.out)[3:ncol(t.m1.boot.out)]) := lapply(.SD, as.numeric), .SDcols = colnames(t.m1.boot.out)[3:ncol(t.m1.boot.out)]]
+t.m2.boot.out[,c(colnames(t.m2.boot.out)[3:ncol(t.m2.boot.out)]) := lapply(.SD, as.numeric), .SDcols = colnames(t.m2.boot.out)[3:ncol(t.m2.boot.out)]]
+t.m1.mi.out[,c(colnames(t.m1.mi.out)[3:ncol(t.m1.mi.out)]) := lapply(.SD, as.numeric), .SDcols = colnames(t.m1.mi.out)[3:ncol(t.m1.mi.out)]]
+t.m2.mi.out[,c(colnames(t.m2.mi.out)[3:ncol(t.m2.mi.out)]) := lapply(.SD, as.numeric), .SDcols = colnames(t.m2.mi.out)[3:ncol(t.m2.mi.out)]]
+
+sink('./Output/WebTable4.tex')
 kable(t.m1.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with resampling-based multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
 
-sink('./Output/SuppTable2.tex')
+sink('./Output/WebTable5.tex')
 kable(t.m2.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with resampling-based multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
 
-sink('./Output/SuppTable3.tex')
+sink('./Output/WebTable6.tex')
 kable(t.m1.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with parametric multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
 
-sink('./Output/SuppTable4.tex')
+sink('./Output/WebTable7.tex')
 kable(t.m2.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with parametric multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
@@ -601,9 +616,217 @@ setnames(df.regcalib,c('Coefficient','True Parameter','Estimate','Relative Bias'
 
 # Exporting table
 
-sink('./Output/SuppTable5.tex')
+sink('./Output/WebTable8.tex')
 df.regcalib %>%
     kable(format = 'latex',digits = 3,booktabs = T,escape = F,
           caption = 'Simulation Metrics of Regression Calibration Across 1000 Simulations.')%>%kable_styling(latex_options = 'scale_down')%>%
     footnote(general = "Average values of Estimate, Relative Bias, and SE (standard error) calculated across 1000 simulations of estimates from the regression calibration fitted in SOLNAS simulated phase 2 subsample. Empirical SE calculated as the standard deviation of estimated coefficients. Coverage indicates the proportion of 95 percent confidence intervals covering the true parameter.",escape = F,threeparttable = T)
+sink()
+
+###############################################################
+############# Creating Plots for Population Data ##############
+###############################################################
+
+pt.title = 10
+pt.text = 10
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_bio1','ln_na_avg','ln_na_true')],2,sd),2)
+pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
+    gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
+    mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
+
+naplot = ggplot(pop.na,aes(Sodium,color=Type,fill=Type))+
+    geom_density(alpha=0.15)+
+    theme_bw()+ylab('Density')+xlab('Log-Sodium')+
+    scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
+    guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_k_bio1','ln_k_avg','ln_k_true')],2,sd),2)
+pop.k <- as_tibble(pop[pop$v.num==1,c('ln_k_true','ln_k_bio1','ln_k_avg')]) %>%
+    gather(Type,Potassium,ln_k_true:ln_k_avg) %>%
+    mutate(Type = recode(Type,ln_k_true = 'True', ln_k_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
+
+kplot = ggplot(pop.k,aes(Potassium,color=Type,fill=Type))+
+    geom_density(alpha=0.15)+
+    theme_bw()+ylab('Density')+xlab('Log-Potassium')+
+    scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
+    guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
+
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_kcal_bio1','ln_kcal_avg','ln_kcal_true')],2,sd),2)
+pop.kcal <- as_tibble(pop[pop$v.num==1,c('ln_kcal_true','ln_kcal_bio1','ln_kcal_avg')]) %>%
+    gather(Type,Kcal,ln_kcal_true:ln_kcal_avg) %>%
+    mutate(Type = recode(Type,ln_kcal_true = 'True', ln_kcal_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
+
+kcalplot = ggplot(pop.kcal,aes(Kcal,color=Type,fill=Type))+
+    geom_density(alpha=0.15)+
+    theme_bw()+ylab('Density')+xlab('Log-Energy')+
+    scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
+    guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)+xlim(5.5,NA)
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_protein_bio1','ln_protein_avg','ln_protein_true')],2,sd),2)
+pop.protein <- as_tibble(pop[pop$v.num==1,c('ln_protein_true','ln_protein_bio1','ln_protein_avg')]) %>%
+    gather(Type,Protein,ln_protein_true:ln_protein_avg) %>%
+    mutate(Type = recode(Type,ln_protein_true = 'True', ln_protein_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
+
+proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
+    geom_density(alpha=0.15)+
+    theme_bw()+ylab('Density')+xlab('Log-Protein')+
+    scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
+    theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
+    guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
+
+figure1 <- ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     kplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     kcalplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     proteinplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
+                     nrow = 2,ncol = 2,labels = list('A','B','C','D'))
+
+# Organizing plot
+if(!dir.exists('./Output')){system('mkdir Output')}
+ggsave(figure1,filename = './Output/WebFigure1.eps',dpi = 'retina',width = 8.5,height = 7,device = cairo_ps,fallback_resolution = 300)
+
+## Sodium-only figure
+
+sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')],2,sd),2)
+pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
+    gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
+    mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-Reported'))
+pop.na$Type %<>% factor(levels = c('True','Biomarker','Self-Reported'))
+
+figure1.sodiumonly.naplot = ggplot(pop.na,aes(x=Sodium,linetype = Type))+
+    stat_density(geom="line", position="identity",size = convertPt(1))+
+    theme_my(base_size = 52)+ylab('Density')+xlab('Log(Sodium), mg')+
+    ylim(0,1)+xlim(5.450926,11.067032)+
+    labs(linetype = 'Simulated Intake')+
+    scale_linetype_manual(values=c("solid", "dashed",'dotted'))+
+    theme(legend.title.align=0.5,legend.position = c(0.8,0.8),legend.background = element_rect(linetype = 'solid',colour = 'black',size = convertPt(1)))
+
+ggsave(figure1.sodiumonly.naplot,filename = './Output/Figure1.pdf',dpi = 'retina',width = 7,height = 5)
+ggsave(figure1.sodiumonly.naplot,filename = './Output/Figure1.eps',dpi = 'retina',width = 7,height = 5,device = cairo_ps,fallback_resolution = 300)
+
+dt1 <- melt(pop[pop$v.num==1,c('subid','sex','bkg','age','bmi','ln_na_true','ln_na_bio1','ln_na_avg')],
+            id.vars = c('subid','sex','bkg'),measure.vars = c('ln_na_true','ln_na_bio1','ln_na_avg'),variable.name = 'Nutrient',value.name = 'Value')
+dt1$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female')) %<>% factor(levels = c('Female','Male'))
+dt1$bkg %<>% plyr::mapvalues(from = c('D','PR','O'),to = c('Dominican','Puerto Rican','Other')) %<>% factor(levels = c('Dominican','Puerto Rican','Other'))
+dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-Reported')) %<>% factor(levels = c('True','Biomarker','Self-Reported'))
+
+figure1.sodiumonly.boxplot.ls <- lapply(unique(dt1[,paste0(bkg,'-',sex)]),function(x){
+    splitx <- strsplit(x,'-')[[1]]
+    rg <- range(dt1$Value)*c(0.925,1.05)
+    rg[1] <- floor(rg[1])
+    rg[2] <- ceiling(rg[2])
+    
+    ggplot(dt1[bkg == splitx[1] & sex == splitx[2],],aes(y = Value,x = Nutrient))+
+        geom_boxplot(outlier.alpha = 0.25) + #outlier.size = 0.75
+        ylab('Log(Sodium), mg') +
+        theme_my(base_size = 36)+
+        scale_y_continuous(breaks = c(5,7,9,11),limits = c(5,11))+
+        theme(axis.text.x=element_text(angle=20,hjust=1),
+              plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
+})
+
+figure1.sodiumonly.boxplot <- ggarrange(plotlist = figure1.sodiumonly.boxplot.ls,nrow = 2,ncol = 3,labels = as.list(paste0(LETTERS[1:6],')')),
+                                        hjust = 0,vjust = 1.25,font.label = list(size = 36/.pt,face = 'plain'))
+
+
+figure1.sodiumonly.boxplot <- annotate_figure(figure1.sodiumonly.boxplot,bottom = text_grob("Simulated Intake",just = 'center', size = 36/.pt))
+ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.pdf',dpi = 'retina',width = 7,height = 6)
+
+### Saving the plots
+
+for(i in 1:6){
+    subfig <- ggpubr::ggarrange(figure1.sodiumonly.boxplot.ls[[i]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
+                                hjust = 0,vjust = 1.25,font.label = list(size = 36/.pt,face = 'plain'))
+    ggsave(subfig,filename = paste0('./Output/Figure2',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
+}
+
+###########################################
+############# Creating Table ##############
+###########################################
+
+pop.v1 <- pop[(v.num==1),]
+
+dt1 <- pop.v1[,.(N = format(.N,big.mark=',',trim=T),Age = round(100*mean(age.strat),2)),by=c('strat','hisp.strat','bkg','sex')]
+
+dt2 <- pop.v1[,.(NBG = length(unique(BGid)), NHH = format(length(unique(hhid)),big.mark=',',trim=T)),by = c('strat')]
+
+dt3 <- pop.v1[,.(N = length(unique(hhid))),by=c('strat','hisp.strat')]
+dt3[,HispStrat := paste0(ifelse(hisp.strat,'Hisp.','Non-hisp.'),' (',format(N,big.mark = ',',trim = T),')')][,N := NULL]
+
+dt <- merge(dt2,dt3,by='strat')
+dt <- merge(dt,dt1,by = c('strat','hisp.strat'))
+
+dt[,hisp.strat := NULL]
+dt$bkg %<>% plyr::mapvalues(from = c('PR','D','O'),to = c('Puerto Rican','Dominican','Other'))
+dt$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female'))
+setorder(dt,strat,HispStrat,bkg,sex)
+
+sink('./Output/WebTable1.tex')
+kable(dt,booktab = T,caption = '\\label{svysamp}Characteristics of the simulated target population',
+      col.names=c('','(N)','(N)','(N)','','','(N)','(\\%)'),escape=F,format = "latex",
+      align = c('c','c','c','c','l','l','r','r')) %>%
+    add_header_above(c('Stratum'=1,'Block Groups'=1,'Households'=1,'Household Type'=1,'Background'=1,'Sex'=1,'Individuals'=1,'45+ years old'=1), line = F) %>%
+    collapse_rows(columns = 1:5,latex_hline = 'major',valign = 'top') %>%
+    row_spec(0,align = 'c') %>%
+    kable_styling(latex_options = "scale_down")
+sink()
+
+# Creating WebTable3
+
+load("./Output/htn_parameters.RData")
+load("./Output/sbp_parameters.RData")
+
+out <- data.table(Variable = sbp_parameters$coefficients$Variable)
+out <- merge(out,sbp_parameters$coefficients,by = 'Variable',all.x = T)
+out <- merge(out,htn_parameters,by = 'Variable',all.x = T)
+out <- rbind(out,data.table(Variable = 'Sigma2',Estimate.x = sbp_parameters$variance,Estimate.y = NA))
+
+out$Variable %<>% plyr::mapvalues(from = c("BKGRD_OTHER","BKGRD_PR","C_AGE","C_BMI","C_LN_NA_CALIBR","FEMALE","HIGH_TOTAL_CHOL","Intercept","US_BORN","Sigma2"),
+                                  to = c('Background: Other','Background: Puerto Rican','Age (centered)','BMI (centered)','Log-sodium (centered)','Female','Hypercholesterolemia','Intercept','Nativity','Sigma2'))
+out$Variable %<>% factor(levels = c('Intercept','Log-sodium (centered)','Age (centered)','BMI (centered)','Female','Background: Puerto Rican','Background: Other','Hypercholesterolemia','Nativity','Sigma2'))
+out <- out[order(Variable),]
+out[Variable=='Sigma2',Variable := '$\\sigma^{2}$']
+
+sink('./Output/WebTable3.tex')
+kable(out,format='latex',caption='\\label{simoutcoeff}Model coefficients from linear and logistic regression models for the outcome simulation.',
+      digits=3,booktabs=T,escape = F,col.names = c('Coefficient','SBP','Hypertension Status')) %>%
+    row_spec(9,hline_after=T)
+sink()
+
+# Creating WebTable2
+
+load("./data/calibrCoeff.RData")
+
+sodicoeff <- as.data.table(sodicoeff)[Coeff == 'LSODI_2DMEAN_C',Coeff := 'Nutrient'][,Estimate_NA := Estimate][,Estimate := NULL]
+potacoeff <- as.data.table(potacoeff)[Coeff == 'LPOTA_2DMEAN_C',Coeff := 'Nutrient'][,Estimate_K := Estimate][,Estimate := NULL]
+kcalcoeff <- as.data.table(kcalcoeff)[Coeff == 'LKCAL_2DMEAN_C',Coeff := 'Nutrient'][,Estimate_KCAL := Estimate][,Estimate := NULL]
+protcoeff <- as.data.table(protcoeff)[Coeff == 'LPROT_2DMEAN_C',Coeff := 'Nutrient'][,Estimate_PROT := Estimate][,Estimate := NULL]
+
+out <- data.table(Coeff = sodicoeff$Coeff)
+out <- merge(out,sodicoeff,by = 'Coeff',all.x = T)
+out <- merge(out,potacoeff,by = 'Coeff',all.x = T)
+out <- merge(out,kcalcoeff,by = 'Coeff',all.x = T)
+out <- merge(out,protcoeff,by = 'Coeff',all.x = T)
+
+out$Coeff %<>% plyr::mapvalues(from = c("BKGRD_OTHER","BKGRD_PR","AGE_C","BMI_C","Nutrient","FEMALE","(Intercept)","US_BORN","HIGH_TOTAL_CHOL"),
+                               to = c('Background: Other','Background: Puerto Rican','Age (centered)','BMI (centered)','Naive Intake (centered)','Female','Intercept','Nativity','Hypercholesterolemia'))
+out$Coeff %<>% factor(levels = c('Intercept','Naive Intake (centered)','Age (centered)','BMI (centered)','Female','Background: Puerto Rican','Background: Other','Hypercholesterolemia','Nativity'))
+out <- out[order(Coeff),]
+
+sink('./Output/WebTable2.tex')
+out %>%
+    bind_rows(tibble(Coeff='$\\sigma^{2}$',Estimate_NA=var.df[1,2],Estimate_K=var.df[2,2],Estimate_KCAL=var.df[3,2],Estimate_PROT=var.df[4,2])) %>%
+    bind_rows(tibble(Coeff='$\\sigma^{2}_{X}$',Estimate_NA=var.df[1,4],Estimate_K=var.df[2,4],Estimate_KCAL=var.df[3,4],Estimate_PROT=var.df[4,4])) %>%
+    bind_rows(tibble(Coeff='$\\sigma^{2}_{\\epsilon}$',Estimate_NA=var.df[1,3],Estimate_K=var.df[2,3],Estimate_KCAL=var.df[3,3],Estimate_PROT=var.df[4,3])) %>%
+    kable(booktab=T,format='latex',caption='\\label{tab:calibreg}Gaussian linear model coefficients and variance parameters used to simulate the log-transformed true dietary exposures and their respective biomarkers.',
+          escape = F,digits=3,col.names = c('Coefficient','Log-sodium','Log-potassium','Log-energy','Log-protein')) %>%
+    row_spec(7,hline_after=T)
 sink()
