@@ -219,6 +219,11 @@ suboutcome.par = suboutcome.par[match(c("Intercept","C_AGE","C_BMI","C_LN_NA_CAL
 p.par = expit(as.matrix(cbind('Intercept'=1,dt.pop[,c('c_age','c_bmi','c_ln_na_true','high_chol','usborn','female','bkg_pr','bkg_o')]))%*%suboutcome.par$Estimate)
 dt.pop$hypertension = as.numeric(1*(runif(nrow(p.par))<=p.par))
 
+htn_parameters <- suboutcome.par
+if(!dir.exists('./Output')){system('mkdir Output')}
+save(htn_parameters,file = './Output/htn_parameters.RData')
+rm(htn_parameters)
+
 ### Now, simulating SBP outcome ###
 # Based on real data, 1 unit increase in log_NA (or exp(1)~2.7 times increase in sodium)
 # leads to an increment of 1.4058215 units in SBP. Very small effect.
@@ -236,6 +241,13 @@ suboutcome.par = suboutcome.par[match(c("Intercept","C_AGE","C_BMI","C_LN_NA_CAL
 xb.par = as.matrix(cbind('Intercept'=1,dt.pop[,c('c_age','c_bmi','c_ln_na_true','high_chol','usborn','female','bkg_pr','bkg_o')]))%*%suboutcome.par$Estimate
 dt.pop$sbp = as.numeric((xb.par+rnorm(nrow(xb.par),0,m2.sigma)))
 
+sbp_parameters <- list()
+sbp_parameters[['coefficients']] <- suboutcome.par
+sbp_parameters[['variance']] <- m2.sigma^2
+if(!dir.exists('./Output')){system('mkdir Output')}
+save(sbp_parameters,file = './Output/sbp_parameters.RData')
+rm(sbp_parameters)
+
 ### Organizing, Centering and Saving data
 dt.pop$bkg %<>% as.character()
 
@@ -249,161 +261,4 @@ pop = rbind(pop1,pop2)
 
 pop = pop[order(pop$strat,pop$BGid,pop$hhid,pop$subid,pop$v.num),]
 save(pop,file=paste0('./RData/TargetPopulationData.RData'),compress = 'xz')
-
-###########################################
-############# Creating Plots ##############
-###########################################
-
-pt.title = 10
-pt.text = 10
-
-sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_bio1','ln_na_avg','ln_na_true')],2,sd),2)
-pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
-  gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
-  mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
-
-naplot = ggplot(pop.na,aes(Sodium,color=Type,fill=Type))+
-  geom_density(alpha=0.15)+
-  theme_bw()+ylab('Density')+xlab('Log-Sodium')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
-  guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
-
-sdnutr = round(apply(pop[pop$v.num==1,c('ln_k_bio1','ln_k_avg','ln_k_true')],2,sd),2)
-pop.k <- as_tibble(pop[pop$v.num==1,c('ln_k_true','ln_k_bio1','ln_k_avg')]) %>%
-  gather(Type,Potassium,ln_k_true:ln_k_avg) %>%
-  mutate(Type = recode(Type,ln_k_true = 'True', ln_k_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
-
-kplot = ggplot(pop.k,aes(Potassium,color=Type,fill=Type))+
-  geom_density(alpha=0.15)+
-  theme_bw()+ylab('Density')+xlab('Log-Potassium')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
-  guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
-
-
-sdnutr = round(apply(pop[pop$v.num==1,c('ln_kcal_bio1','ln_kcal_avg','ln_kcal_true')],2,sd),2)
-pop.kcal <- as_tibble(pop[pop$v.num==1,c('ln_kcal_true','ln_kcal_bio1','ln_kcal_avg')]) %>%
-  gather(Type,Kcal,ln_kcal_true:ln_kcal_avg) %>%
-  mutate(Type = recode(Type,ln_kcal_true = 'True', ln_kcal_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
-
-kcalplot = ggplot(pop.kcal,aes(Kcal,color=Type,fill=Type))+
-  geom_density(alpha=0.15)+
-  theme_bw()+ylab('Density')+xlab('Log-Energy')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
-  guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
-
-sdnutr = round(apply(pop[pop$v.num==1,c('ln_protein_bio1','ln_protein_avg','ln_protein_true')],2,sd),2)
-pop.protein <- as_tibble(pop[pop$v.num==1,c('ln_protein_true','ln_protein_bio1','ln_protein_avg')]) %>%
-  gather(Type,Protein,ln_protein_true:ln_protein_avg) %>%
-  mutate(Type = recode(Type,ln_protein_true = 'True', ln_protein_bio1 = 'Biomarker', ln_k_avg='Self-reported'))
-
-proteinplot = ggplot(pop.protein,aes(Protein,color=Type,fill=Type))+
-  geom_density(alpha=0.15)+
-  theme_bw()+ylab('Density')+xlab('Log-Protein')+
-  scale_fill_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  scale_color_manual(labels=as.character(apply(cbind(c('Biomarker','Self-reported','True'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})),values=c('darkgreen','darkred','darkblue'))+
-  theme(legend.title=element_blank(),legend.position = c(0.275,0.85),legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))+
-  guides(color = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1.35)
-
-figure1 <- ggarrange(naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                     kplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                     kcalplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                     proteinplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                     nrow = 2,ncol = 2,labels = list('A','B','C','D'))
-
-# Organizing plot
-if(!dir.exists('./Output')){system('mkdir Output')}
-ggsave(figure1,filename = './Output/Figure1.eps',
-       dpi = 'retina',width = 8.5,height = 7,device = cairo_ps,fallback_resolution = 300)
-
-## Sodium-only figure
-
-sdnutr = round(apply(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')],2,sd),2)
-pop.na <- as_tibble(pop[pop$v.num==1,c('ln_na_true','ln_na_bio1','ln_na_avg')]) %>%
-  gather(Type,Sodium,ln_na_true:ln_na_avg) %>%
-  mutate(Type = recode(Type,ln_na_true = 'True', ln_na_bio1 = 'Biomarker', ln_na_avg='Self-reported'))
-pop.na$Type %<>% factor(levels = c('True','Biomarker','Self-reported'))
-
-figure1.sodiumonly.naplot = ggplot(pop.na,aes(x=Sodium,linetype = Type))+
-  stat_density(geom="line", position="identity")+
-  theme_bw()+ylab('Density')+xlab('Log-Sodium')+
-  theme_bw() + 
-  scale_linetype_manual(values = c('solid','longdash','dotted'),
-                        labels=as.character(apply(cbind(c('True','Biomarker','Self-reported'),sdnutr),1,FUN = function(x){paste0(x[1],' (SD=',x[2],')')})))+
-  guides(linetype = guide_legend(override.aes = list(size = rel(0.3))))+ylim(0,1)+
-  theme(legend.title=element_blank(),legend.position = 'top',legend.direction = 'vertical',legend.text = element_text(size=pt.title),legend.background =  element_rect(fill = "transparent", colour = "transparent"))
-
-dt1 <- melt(pop[pop$v.num==1,c('subid','sex','bkg','age','bmi','ln_na_true','ln_na_bio1','ln_na_avg')],
-            id.vars = c('subid','sex','bkg'),measure.vars = c('ln_na_true','ln_na_bio1','ln_na_avg'),variable.name = 'Nutrient',value.name = 'Value')
-dt1$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female')) %<>% factor(levels = c('Female','Male'))
-dt1$bkg %<>% plyr::mapvalues(from = c('D','PR','O'),to = c('Dominican','Puerto Rican','Other')) %<>% factor(levels = c('Dominican','Puerto Rican','Other'))
-dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-\nreported')) %<>% factor(levels = c('True','Biomarker','Self-\nreported'))
-
-figure1.sodiumonly.boxplot <-  ggplot(dt1,aes(y = Value,x = Nutrient))+
-  facet_grid(cols = vars(bkg),rows = vars(sex))+
-  geom_boxplot(outlier.alpha = 0.25,outlier.size = 0.75) +
-  theme_bw() +
-  theme(axis.title.x = element_blank(),legend.title = element_blank(),
-        legend.position = 'bottom',legend.direction = 'horizontal',
-        legend.key = element_rect(fill = "transparent", colour = "transparent"),
-        legend.text = element_text(size=pt.title),axis.text.x = element_text(angle = 30, hjust = 1))+
-  ylab('Log-Sodium') + xlab('Nutrient')
-
-# figure1.sodiumonly.reg <- ggplot(merge(dt1,pop[pop$v.num==1,c('subid','sbp')],by = 'subid',all.x = T))+
-#   facet_grid(cols = vars(bkg),rows = vars(sex))+
-#   geom_smooth(method = lm,aes(x = Value,y = sbp,linetype = Nutrient),color = 'black',se = T,size = 0.5) +
-#   scale_linetype_manual(values = c('solid','longdash','dotted')) +
-#   theme_bw()+
-#   guides(linetype = guide_legend(override.aes = list(size = rel(0.3))))+
-#   xlab('Log-Sodium')+ylab('Systolic Blood Pressure')+
-#   theme(legend.title=element_blank(),legend.position = 'none')
-
-# figure1.sodiumonly <- ggarrange(figure1.sodiumonly.naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-#                                 figure1.sodiumonly.bottom,
-#                                 ncol = 1,nrow = 2,labels = list('A'),heights = c(0.35,0.65))
-
-figure1.sodiumonly <- ggarrange(figure1.sodiumonly.naplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                                       figure1.sodiumonly.boxplot+theme(axis.text = element_text(size = pt.text),axis.title = element_text(size = pt.title)),
-                                       ncol = 2,nrow = 1,labels = list('A','B'))
-
-# Organizing plot
-if(!dir.exists('./Output')){system('mkdir Output')}
-ggsave(figure1.sodiumonly,filename = './Output/Figure1_SodiumOnly.eps',
-       dpi = 'retina',width = 8,height = 4,device = cairo_ps,fallback_resolution = 300)
-
-###########################################
-############# Creating Table ##############
-###########################################
-
-pop.v1 <- pop[(v.num==1),]
-
-dt1 <- pop.v1[,.(N = format(.N,big.mark=',',trim=T),Age = round(100*mean(age.strat),2)),by=c('strat','hisp.strat','bkg','sex')]
-
-dt2 <- pop.v1[,.(NBG = length(unique(BGid)), NHH = format(length(unique(hhid)),big.mark=',',trim=T)),by = c('strat')]
-
-dt3 <- pop.v1[,.(N = length(unique(hhid))),by=c('strat','hisp.strat')]
-dt3[,HispStrat := paste0(ifelse(hisp.strat,'Hisp.','Non-hisp.'),' (',format(N,big.mark = ',',trim = T),')')][,N := NULL]
-
-dt <- merge(dt2,dt3,by='strat')
-dt <- merge(dt,dt1,by = c('strat','hisp.strat'))
-
-dt[,hisp.strat := NULL]
-dt$bkg %<>% plyr::mapvalues(from = c('PR','D','O'),to = c('Puerto Rican','Dominican','Other'))
-dt$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female'))
-setorder(dt,strat,HispStrat,bkg,sex)
-
-sink('./Output/Table1.tex')
-kable(dt,booktab = T,caption = '\\label{svysamp}Characteristics of the simulated target population',
-      col.names=c('','(N)','(N)','(N)','','','(N)','(\\%)'),escape=F,format = "latex",
-      align = c('c','c','c','c','l','l','r','r')) %>%
-  add_header_above(c('Stratum'=1,'Block Groups'=1,'Households'=1,'Household Type'=1,'Background'=1,'Sex'=1,'Individuals'=1,'45+ years old'=1), line = F) %>%
-  collapse_rows(columns = 1:5,latex_hline = 'major',valign = 'top') %>%
-  row_spec(0,align = 'c') %>%
-  kable_styling(latex_options = "scale_down")
-sink()
 
