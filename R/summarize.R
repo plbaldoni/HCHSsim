@@ -739,6 +739,7 @@ figure1.sodiumonly.boxplot <- ggarrange(plotlist = figure1.sodiumonly.boxplot.ls
 
 figure1.sodiumonly.boxplot <- annotate_figure(figure1.sodiumonly.boxplot,bottom = text_grob("Simulated Intake",just = 'center', size = 36/.pt))
 ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.pdf',dpi = 'retina',width = 7,height = 6)
+ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.eps',dpi = 'retina',width = 7,height = 6,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the plots
 
