@@ -9,6 +9,8 @@ library(kableExtra)
 library(tidyr)
 library(dplyr)
 
+options(knitr.kable.NA = '')
+
 # Defining plot theme
 
 convertPt <- function(x){
@@ -428,7 +430,8 @@ fig.m2 <- ggpubr::ggarrange(plotlist = fig.m2.ls,ncol = 3,nrow = 3,labels = as.l
 
 fig4 <- ggpubr::ggarrange(fig.m1,fig.m2,ncol = 1,nrow = 2)
 fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = sizeLetter.erroBars/.pt))
-ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 9,width = 7)
+ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 7.5,width = 7)
+ggsave(fig4,filename = './Output/Figure4.eps',dpi = 'retina',height = 7.5,width = 7,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the plots
 
@@ -462,7 +465,7 @@ fig.time <- ggplot(df.time,aes(x = Model,y = log10(Total.Time)))+
           axis.text = element_text(size = 12),legend.text = element_text(size = 12),
           legend.title = element_text(size = 12),legend.background = element_rect(fill=alpha('white', 0)))
 
-ggsave(fig.time,filename = './Output/SuppFigure2.eps',
+ggsave(fig.time,filename = './Output/WebFigure2.eps',
        dpi = 'retina',height = 11/2,width = 8.5/1.25,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the output
@@ -556,13 +559,13 @@ kable(t.m1.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient
 sink()
 
 sink('./Output/WebTable5.tex')
-kable(t.m2.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with resampling-based multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+kable(t.m1.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with parametric multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
     footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
 
 sink('./Output/WebTable6.tex')
-kable(t.m1.mi.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Logistic regression with parametric multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
-    footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
+kable(t.m2.boot.out,format = 'latex',digits = 3,col.names = c("Metric",'Nutrient',"Intercept","Age","BMI","log-Sodium","High Chol","USBorn","Female","Bkg PRican","Bkg Other"),align = c('l','l','c','c','c','c','c','c','c','c','c'),booktabs = T,escape = F,caption = 'Simulation results. Linear regression with resampling-based multiple imputation correction of standard errors.')%>%kable_styling(latex_options = 'scale_down')%>%collapse_rows(columns = 1,latex_hline = 'major',valign = 'top') %>%
+  footnote(general = " For SE (standard error), 'Calibrated' indicates the average (across 1000 simulations) of the model-based uncorrected standard errors from the outcome model using biomarker calibrated nutrients, and  'Corrected' indicates the average (across 1000 simulations) of the corrected standard errors from the outcome model using biomarker calibrated nutrients.\n For Coverage, the table shows the proportion of 95 percent confidence intervals (Estimate $\\\\pm z_{0.975}$SE) covering the true parameter (first row), where $z_{0.975}$ is the $97.5$ percentile of the standard Gaussian distribution.",escape = F,threeparttable = T)
 sink()
 
 sink('./Output/WebTable7.tex')
@@ -716,9 +719,12 @@ dt1 <- melt(pop[pop$v.num==1,c('subid','sex','bkg','age','bmi','ln_na_true','ln_
             id.vars = c('subid','sex','bkg'),measure.vars = c('ln_na_true','ln_na_bio1','ln_na_avg'),variable.name = 'Nutrient',value.name = 'Value')
 dt1$sex %<>% plyr::mapvalues(from = c('M','F'),to = c('Male','Female')) %<>% factor(levels = c('Female','Male'))
 dt1$bkg %<>% plyr::mapvalues(from = c('D','PR','O'),to = c('Dominican','Puerto Rican','Other')) %<>% factor(levels = c('Dominican','Puerto Rican','Other'))
-dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-Reported')) %<>% factor(levels = c('True','Biomarker','Self-Reported'))
+dt1$Nutrient %<>% plyr::mapvalues(from = c('ln_na_true','ln_na_bio1','ln_na_avg'),to = c('True','Biomarker','Self-\nReported')) %<>% factor(levels = c('True','Biomarker','Self-\nReported'))
 
-figure1.sodiumonly.boxplot.ls <- lapply(unique(dt1[,paste0(bkg,'-',sex)]),function(x){
+orderComb <- c("Dominican-Female","Puerto Rican-Female","Other-Female",
+               "Dominican-Male","Puerto Rican-Male","Other-Male")
+
+figure1.sodiumonly.boxplot.ls <- lapply(orderComb,function(x){
     splitx <- strsplit(x,'-')[[1]]
     rg <- range(dt1$Value)*c(0.925,1.05)
     rg[1] <- floor(rg[1])
@@ -727,25 +733,25 @@ figure1.sodiumonly.boxplot.ls <- lapply(unique(dt1[,paste0(bkg,'-',sex)]),functi
     ggplot(dt1[bkg == splitx[1] & sex == splitx[2],],aes(y = Value,x = Nutrient))+
         geom_boxplot(outlier.alpha = 0.25) + #outlier.size = 0.75
         ylab('Log(Sodium), mg') +
-        theme_my(base_size = 36)+
+        theme_my(42)+
         scale_y_continuous(breaks = c(5,7,9,11),limits = c(5,11))+
         theme(axis.text.x=element_text(angle=20,hjust=1),
               plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
 })
 
 figure1.sodiumonly.boxplot <- ggarrange(plotlist = figure1.sodiumonly.boxplot.ls,nrow = 2,ncol = 3,labels = as.list(paste0(LETTERS[1:6],')')),
-                                        hjust = 0,vjust = 1.25,font.label = list(size = 36/.pt,face = 'plain'))
+                                        hjust = 0,vjust = 1.25,font.label = list(size = 42/.pt,face = 'plain'))
 
 
-figure1.sodiumonly.boxplot <- annotate_figure(figure1.sodiumonly.boxplot,bottom = text_grob("Simulated Intake",just = 'center', size = 36/.pt))
-ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.pdf',dpi = 'retina',width = 7,height = 6)
-ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.eps',dpi = 'retina',width = 7,height = 6,device = grDevices::cairo_ps,fallback_resolution = 300)
+figure1.sodiumonly.boxplot <- annotate_figure(figure1.sodiumonly.boxplot,bottom = text_grob("Simulated Intake",just = 'center', size = 42/.pt))
+ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.pdf',dpi = 'retina',width = 7,height = 7)
+ggsave(figure1.sodiumonly.boxplot,filename = './Output/Figure2.eps',dpi = 'retina',width = 7,height = 7,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the plots
 
 for(i in 1:6){
     subfig <- ggpubr::ggarrange(figure1.sodiumonly.boxplot.ls[[i]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
-                                hjust = 0,vjust = 1.25,font.label = list(size = 36/.pt,face = 'plain'))
+                                hjust = 0,vjust = 1.25,font.label = list(size = 42/.pt,face = 'plain'))
     ggsave(subfig,filename = paste0('./Output/Figure2',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
 }
 
@@ -829,5 +835,5 @@ out %>%
     bind_rows(tibble(Coeff='$\\sigma^{2}_{\\epsilon}$',Estimate_NA=var.df[1,3],Estimate_K=var.df[2,3],Estimate_KCAL=var.df[3,3],Estimate_PROT=var.df[4,3])) %>%
     kable(booktab=T,format='latex',caption='\\label{tab:calibreg}Gaussian linear model coefficients and variance parameters used to simulate the log-transformed true dietary exposures and their respective biomarkers.',
           escape = F,digits=3,col.names = c('Coefficient','Log-sodium','Log-potassium','Log-energy','Log-protein')) %>%
-    row_spec(7,hline_after=T)
+    row_spec(9,hline_after=T)
 sink()
