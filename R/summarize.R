@@ -356,11 +356,11 @@ m2.plot[,Lbl := min(Estimate-SE,Estimate-ESE)-max(SE,ESE),by='Coeff']
 
 ### Subsetting to the relevant methods
 m1.plot.sub <- m1.plot[Method %in% c('True (Phase1, Unobservable)','Naive 2-day Mean (Phase 1)','Naive Calibrated w/ Bootstrap (Phase 1)','Naive Calibrated w/ MI (Phase 1)'),]
-m1.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Bootstrap','MI'))
+m1.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','RBMI','PMI'))
 m1.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(m1.plot.sub$Coeff[!m1.plot.sub$Coeff%in%c('Intercept','Log-Sodium')]))))
 
 m2.plot.sub <- m2.plot[Method %in% c('True (Phase1, Unobservable)','Naive 2-day Mean (Phase 1)','Naive Calibrated w/ Bootstrap (Phase 1)','Naive Calibrated w/ MI (Phase 1)'),]
-m2.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','Bootstrap','MI'))
+m2.plot.sub$Method %<>% mapvalues(from = unique(.),to = c('True\n(Unobservable)','Naive','RBMI','PMI'))
 m2.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(unique(m2.plot.sub$Coeff[!m2.plot.sub$Coeff%in%c('Intercept','Log-Sodium')]))))
 
 #####################################################################
@@ -389,7 +389,7 @@ fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Co
         guides(shape = FALSE, color = FALSE)+
         theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
         scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
-        theme(axis.text.x=element_text(angle=20,hjust=1),axis.title.x = element_blank(),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
+        theme(axis.title.x = element_blank(),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
     
     return(subfig)
 })
@@ -418,7 +418,7 @@ fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Co
         guides(shape = FALSE, color = FALSE)+
         theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
         scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
-        theme(axis.text.x=element_text(angle=20,hjust=1),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
+        theme(plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
     
     return(subfig)
 })
@@ -430,8 +430,8 @@ fig.m2 <- ggpubr::ggarrange(plotlist = fig.m2.ls,ncol = 3,nrow = 3,labels = as.l
 
 fig4 <- ggpubr::ggarrange(fig.m1,fig.m2,ncol = 1,nrow = 2)
 fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = sizeLetter.erroBars/.pt))
-ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 7.5,width = 7)
-ggsave(fig4,filename = './Output/Figure4.eps',dpi = 'retina',height = 7.5,width = 7,device = grDevices::cairo_ps,fallback_resolution = 300)
+ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 7.15,width = 7)
+ggsave(fig4,filename = './Output/Figure4.eps',dpi = 'retina',height = 7.15,width = 7,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the plots
 
