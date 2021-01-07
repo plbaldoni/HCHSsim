@@ -367,29 +367,41 @@ m2.plot.sub$Coeff %<>% factor(levels = c('Intercept','Log-Sodium',as.character(u
 ### Plotting Error bars
 #####################################################################
 
+labeller <- function(x,digits = 2){
+  roundX <- format(round(abs(x), digits = digits), nsmall = digits) 
+  modX <- ifelse(sign(x)==1,paste0(roundX),paste0("-",roundX))#"\U2212"
+  modX[modX==paste0("-",paste0('0.',paste(rep(0,digits),collapse='')))] <- '0.00'
+  return(modX)
+}
+
 sizeLetter.erroBars <- 30
 
+range.fig.m1 <- list('Intercept' = c(-2.5,-1.5),'Log-Sodium ' = c(0,2.1),'Age' = c(0.075,0.095),
+                     'BMI' = c(0.02,0.1),'High Cholesterol' = c(0,0.7),'US Born' = c(-0.75,0.25),
+                     'Sex: Female' = c(-0.75,0.25),'Background: Puerto Rico' = c(-0.75,0.25),'Background: Other' = c(-1.25,-0.5))
+
+
 fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
-  s <- 0.25
-  
+
   subdt <- m1.plot.sub[!Method=="True\n(Unobservable)" & Coeff==coef,]
   
-  range <- c(subdt[,min(Estimate-ESE)],subdt[,max(Estimate+ESE)])
-  range <- c(range[1]*ifelse(range[1]<0,1+s,1-s),range[2]*ifelse(range[2]<0,1-s,1+s))
-  range <- c(plyr::round_any(range[1],ifelse(abs(diff(range))<0.1,0.01,0.1),floor),
-             plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
-  
+  range <- range.fig.m1[[coef]]
+
   subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
-    geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1))+
+    geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1),linetype = 'dashed')+
     geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=convertPt(1)) +
     geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
     geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
     theme_my(base_size = sizeLetter.erroBars)+
     scale_color_manual(values = coeffcol)+
     guides(shape = FALSE, color = FALSE)+
+    xlab("Regression Model")+
     theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
-    scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
-    theme(axis.title.x = element_blank(),plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
+    scale_y_continuous(labels = labeller(seq(range[1],range[2],length.out = 4)),#scales::number_format(accuracy = 0.01,decimal.mark = '.'),
+                       limits = range,breaks = seq(range[1],range[2],length.out = 4))+
+    theme(panel.border = element_blank(),
+          axis.line = element_line(color = 'black'),
+          plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
   
   return(subfig)
 })
@@ -397,28 +409,31 @@ fig.m1.ls <- lapply(sort(unique(m1.plot.sub[!Method=="True\n(Unobservable)",]$Co
 fig.m1 <- ggpubr::ggarrange(plotlist = fig.m1.ls,ncol = 3,nrow = 3,labels = as.list(paste0(LETTERS[1:9],')')),
                             hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
 
+range.fig.m2 <- list('Intercept' = c(122,131),'Log-Sodium ' = c(6,34),'Age' = c(0.3,0.5),
+                     'BMI' = c(-0.1,0.9),'High Cholesterol' = c(-0.1,3.5),'US Born' = c(-4.5,1.75),
+                     'Sex: Female' = c(-15,-5.5),'Background: Puerto Rico' = c(-5,0.75),'Background: Other' = c(-4.5,0.25))
+
 fig.m2.ls <- lapply(sort(unique(m2.plot.sub[!Method=="True\n(Unobservable)",]$Coeff)),function(coef){
-  
-  s <- ifelse(coef == 'Intercept',0.01,ifelse(coef == 'Background: Puerto Rico',0.4,0.25))
   
   subdt <- m2.plot.sub[!Method=="True\n(Unobservable)" & Coeff==coef,]
   
-  range <- c(subdt[,min(Estimate-ESE)],subdt[,max(Estimate+ESE)])
-  range <- c(range[1]*ifelse(range[1]<0,1+s,1-s),range[2]*ifelse(range[2]<0,1-s,1+s))
-  range <- c(plyr::round_any(range[1],ifelse(abs(diff(range))<0.1,0.01,0.1),floor),
-             plyr::round_any(range[2],ifelse(abs(diff(range))<0.1,0.01,0.1),ceiling))
+  range <- range.fig.m2[[coef]]
   
   subfig <- ggplot(data = subdt,aes(x = Method, y = Estimate,shape = Method)) +
-    geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1))+
+    geom_hline(data = subdt, aes(yintercept = True),size=convertPt(1),linetype = 'dashed')+
     geom_pointrange(aes(ymin = Estimate-SE,ymax = Estimate+SE,color = Coeff),size=convertPt(1)) +
     geom_point(aes(y = Estimate+ESE,color = Coeff),shape = 5)+
     geom_point(aes(y = Estimate-ESE,color = Coeff),shape = 5)+
     theme_my(base_size = sizeLetter.erroBars)+
     scale_color_manual(values = coeffcol)+
     guides(shape = FALSE, color = FALSE)+
+    xlab("Regression Model")+
     theme(legend.position = 'bottom',legend.direction = 'horizontal',legend.text = NULL,legend.title = element_blank())+
-    scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'),limits = range,breaks = seq(range[1],range[2],length.out = 4))+
-    theme(plot.margin = unit(c(15, 5.5, 5.5, 15), "points"),axis.title.x = element_blank())
+    scale_y_continuous(labels = labeller(seq(range[1],range[2],length.out = 4)),#scales::number_format(accuracy = 0.01,decimal.mark = '.'),
+                       limits = range,breaks = seq(range[1],range[2],length.out = 4))+
+    theme(panel.border = element_blank(),
+          axis.line = element_line(color = 'black'),
+          plot.margin = unit(c(15, 5.5, 5.5, 15), "points"))
   
   return(subfig)
 })
@@ -429,8 +444,11 @@ fig.m2 <- ggpubr::ggarrange(plotlist = fig.m2.ls,ncol = 3,nrow = 3,labels = as.l
 ### Put them together
 
 fig4 <- ggpubr::ggarrange(fig.m1,fig.m2,ncol = 1,nrow = 2)
-fig4 <- annotate_figure(fig4,bottom = text_grob("Regression Model",just = 'center', size = sizeLetter.erroBars/.pt))
-ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 7.15,width = 7)
+quartz(type = 'pdf',file = './Output/Figure4.pdf',dpi = 320,width = 7,height = 7.15)
+fig4
+dev.off()
+#ggsave(fig4,filename = './Output/Figure4.pdf',dpi = 'retina',height = 7.15,width = 7,device = grDevices::cairo_pdf)
+ggsave(fig4,filename = './Output/Figure4.png',dpi = 'retina',height = 7.15,width = 7)
 ggsave(fig4,filename = './Output/Figure4.eps',dpi = 'retina',height = 7.15,width = 7,device = grDevices::cairo_ps,fallback_resolution = 300)
 
 ### Saving the plots
@@ -438,12 +456,12 @@ ggsave(fig4,filename = './Output/Figure4.eps',dpi = 'retina',height = 7.15,width
 for(i in 1:9){
   subfig <- ggpubr::ggarrange(fig.m1.ls[[i]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
                               hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
-  ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
+  ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 7.15/6,width = 7/3,device = grDevices::cairo_ps,fallback_resolution = 300)
 }
 for(i in 10:18){
   subfig <- ggpubr::ggarrange(fig.m2.ls[[i-9]],ncol = 1,nrow = 1,labels = as.list(paste0(LETTERS[i],')')),
                               hjust = 0,vjust = 1.25,font.label = list(size = sizeLetter.erroBars/.pt,face = 'plain'))
-  ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 3,width = 3,device = grDevices::cairo_ps,fallback_resolution = 300)
+  ggsave(subfig,filename = paste0('./Output/Figure4',LETTERS[i],'.eps'),dpi = 'retina',height = 7.15/6,width = 7/3,device = grDevices::cairo_ps,fallback_resolution = 300)
 }
 
 # Computing time
