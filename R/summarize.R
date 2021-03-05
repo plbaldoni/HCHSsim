@@ -725,9 +725,10 @@ pop.na$Type %<>% factor(levels = c('True','Biomarker','Self-Reported'))
 figure1.sodiumonly.naplot = ggplot(pop.na,aes(x=Sodium,linetype = Type))+
   stat_density(geom="line", position="identity",size = convertPt(1))+
   theme_my(base_size = 52)+ylab('Density')+xlab('Log(Sodium), mg')+
-  ylim(0,1)+xlim(5.450926,11.067032)+
+  ylim(0,1)+
   labs(linetype = 'Simulated Intake')+
   scale_linetype_manual(values=c("solid", "dashed",'dotted'))+
+  scale_x_continuous(breaks = seq(5.5,11.5,1),limits = c(5.5,11.5)) +
   theme(legend.title.align=0.5,
         legend.position = c(0.8,0.8),
         panel.border = element_blank(),
